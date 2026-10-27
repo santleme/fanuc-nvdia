@@ -733,3 +733,45 @@ antes de qualquer relançamento:
 
 Relançamento do kernel BC a partir desta branch (após merge) é a
 decisão seguinte do fundador.
+
+### Análise da coleta BC v3 — por que o professor faz 0,515 (27/10/2026)
+
+Atribuição por episódio a partir do `bc-demos.npz` da v3
+(trajetórias reconstruídas: TCP por FK das juntas gravadas, peça =
+TCP + observação relativa; 200 episódios, 89.000 passos):
+
+- **103 success (51,5%), 111 grasped (55,5%)**. Das 89 falhas de
+  grasp: **75 (classe D)** — captura e contato bilateral acontecem,
+  mas no lift a garra fecha até **0,0120 m (o setpoint cheio, vazia)**
+  e a peça fica na esteira no ponto de pick (final x≈1,11, z=0,15),
+  contato 0 N no fim do lift; **14 (classe C)** — contato **zero** o
+  episódio inteiro, garra fecha vazia, peça largada no pick; classes
+  "sem janela geométrica" e "peça não parou" = **0**. Nos 111
+  grasped, a garra segura em **0,0060 m** (a peça entre os dedos) e o
+  contato sustenta ~12 N até o fim do lift.
+- **Dependência da condição**: grasp 0,85 com velocidade
+  0,06–0,075 m/s cai para **0,35** em 0,075–0,09; pick 1,02–1,10 →
+  grasp 0,64 contra **0,32** em 1,10–1,17. O baseline (seed 23:
+  start 0,832, vel. 0,069, pick 1,039 — números do runtime-report
+  da v3) mora na faixa boa: o portão de condição única nunca amostrou
+  a região ruim.
+- **Mecanismo**: a captura exige pinch (≥4 mm) + TCP a <0,16 m, mas
+  a garra só começa a fechar em t=3,0 s, junto com a descida sem
+  clearance — a peça segue em movimento cinemático durante
+  descida+fechamento e avança `vel × atraso`; em velocidade/pick
+  altos ela já não está centrada entre as garras quando a esteira
+  pausa. A âncora congela a posição desalinhada e o lift sai vazio.
+  Forças de centenas de N no grasp ocorrem também nos sucessos
+  (baseline: picos 957/768 N) — esmagamento transitório contra o
+  drive cinemático é normal nesta célula; o discriminante é o que
+  sobra no lift (contato sustentado + garra em 6 mm × garra vazia
+  em 12 mm + peça no pick).
+- Dos 8 grasped sem success, a maioria **derruba a peça no
+  transfer** (finais em y −0,69…−1,40, z 0,04 — além do pedestal):
+  vazamento secundário de ~4 pp, mesma família (pinch firmeza).
+- **Correção indicada** (decisão do fundador): grasp em dois tempos
+  — pairar sobre o pick com a garra pré-fechada no limiar do pinch
+  para a captura disparar com a peça centrada e a esteira pausada,
+  e só então descer os últimos centímetros e fechar sobre a peça
+  PARADA, em vez de descer+fechar sobre a peça em movimento.
+  Relançar a coleta sem essa correção reproduz o mesmo portão.
