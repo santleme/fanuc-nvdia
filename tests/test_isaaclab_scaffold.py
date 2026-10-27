@@ -228,3 +228,34 @@ def test_notebook_builder_parameterizes_experiment() -> None:
     assert "args.train_num_envs" in builder and "args.physics" in builder
     # com defaults, nenhuma troca é aplicada (saída byte a byte a de sempre)
     assert 'if args.physics != "ovphysx" or args.train_num_envs != 64' in builder
+
+
+def test_env_cfg_mdp_references_are_all_exported() -> None:
+    """Regressão da v68: o probe morreu com AttributeError porque
+    `mdp/__init__.py` tem lista explícita de exports e as funções novas
+    (finger_contact_forces, object_held, belt_difficulty_curriculum)
+    ficaram fora. Todo `mdp.<nome>` usado no env_cfg precisa estar
+    exportado — e definido em cell.py."""
+    import re
+
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+    mdp_init = (OVERLAY / "mdp/__init__.py").read_text()
+    cell = (OVERLAY / "mdp/cell.py").read_text()
+
+    referenced = set(re.findall(r"(?<![\w])mdp\.(\w+)", env_cfg))
+    assert referenced, "env_cfg deveria referenciar termos mdp"
+    for name in sorted(referenced):
+        assert f"    {name},\n" in mdp_init or f"    {name}\n" in mdp_init, \
+            f"mdp.{name} usado no env_cfg mas não exportado em mdp/__init__.py"
+        assert f"def {name}(" in cell or f"class {name}(" in cell, \
+            f"mdp.{name} exportado mas não definido em cell.py"
+
+
+def test_builder_newton_mode_drops_uv_extra() -> None:
+    """Regressão do spike v1: não existe extra `newton` no Isaac Lab
+    ("Extra 'newton' is not defined" na conversão). Fora do default,
+    o builder REMOVE o par '--extra', 'ovphysx' em vez de renomear."""
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+
+    assert "source.replace(\"'--extra', 'ovphysx', \", \"\")" in builder
+    assert "'--extra', '{args.physics}'" not in builder

@@ -455,17 +455,22 @@ def main() -> None:
     # nascem com os defaults históricos (ovphysx, 64 envs, 500 it) e
     # os tokens são trocados aqui, num lugar só — com os defaults, a
     # saída é byte a byte a de sempre. O token de física cobre os
-    # comandos isaaclab, o extra do uv e o backend forçado no
-    # conversor URDF→USD (no caminho Newton, o conversor usa o preset
-    # newton em vez do ovphysx).
+    # comandos isaaclab e o backend forçado no conversor URDF→USD
+    # (no caminho Newton, o conversor usa o preset newton).
+    # ATENÇÃO (spike v1, erro registrado na SPEC): NÃO existe extra
+    # `newton` no optional-dependencies do Isaac Lab — renomear o
+    # extra quebrou a conversão ("Extra 'newton' is not defined").
+    # O backend Newton é dependência padrão do workspace 3.0 (o viz
+    # newton_gl já roda nos kernels OvPhysX), então fora do default
+    # o par '--extra', 'ovphysx' é REMOVIDO dos comandos, não trocado.
     if args.physics != "ovphysx" or args.train_num_envs != 64 \
             or args.train_max_iterations != 500:
         for cell in notebook["cells"]:
             source = "".join(cell["source"])
             source = source.replace("physics=ovphysx",
                                     f"physics={args.physics}")
-            source = source.replace("'--extra', 'ovphysx'",
-                                    f"'--extra', '{args.physics}'")
+            if args.physics != "ovphysx":
+                source = source.replace("'--extra', 'ovphysx', ", "")
             source = source.replace('\\1"ovphysx"',
                                     f'\\1"{args.physics}"')
             source = source.replace(
