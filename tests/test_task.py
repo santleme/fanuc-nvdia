@@ -62,3 +62,20 @@ def test_cell_asset_belt_and_place_surface_match_task_coordinates():
     pedestal_top = pedestal["center"][2] + pedestal["half_size"][2]
     assert np.isclose(belt_top, episode.config.belt_surface_z)
     assert np.isclose(episode.config.place_xyz[2], pedestal_top + episode.config.part_size / 2)
+
+
+def test_teacher_gripper_action_two_stage_grasp():
+    from fanuc_cell.task import teacher_gripper_action
+
+    # Reference open: always open, whatever the phase/capture state.
+    assert teacher_gripper_action("approach", False, False) == -1.0
+    assert teacher_gripper_action("approach", False, True) == -1.0
+    assert teacher_gripper_action("release", False, True) == -1.0
+    # Grasp phase: descend open until the belt capture stops the part.
+    assert teacher_gripper_action("grasp", True, False) == -1.0
+    assert teacher_gripper_action("grasp", True, True) == -0.04
+    # Hold on: close regardless (a capture that never fires degrades to
+    # the old timed behavior instead of deadlocking).
+    assert teacher_gripper_action("hold", True, False) == -0.04
+    assert teacher_gripper_action("lift", True, True) == -0.04
+    assert teacher_gripper_action("transfer", True, True) == -0.04

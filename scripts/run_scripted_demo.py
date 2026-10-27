@@ -27,7 +27,7 @@ import numpy as np
 import torch
 
 from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
-from fanuc_cell.task import CellConfig, make_demo_episode
+from fanuc_cell.task import CellConfig, make_demo_episode, teacher_gripper_action
 from fanuc_cell_lab.tasks.conveyor_pick_place.config.m10id12.env_cfg import M10id12EnvCfg
 from fanuc_cell_lab.tasks.conveyor_pick_place.mdp import object_at_goal
 import fanuc_cell_lab.tasks  # noqa: F401
@@ -133,9 +133,10 @@ def main() -> int:
                         fallback_seeds=(np.zeros(6),),
                     )
                 actions[:, :6] = torch.as_tensor(command_joints, device=device).view(1, 6) / 3.2
-                # A 12 mm setpoint preloads the compliant 40 N position drives
-                # after the 80 mm part stops the fingers near 6 mm travel.
-                actions[:, 6:] = -0.04 if gripper_closed else -1.0
+                # Grasp em dois tempos: desce aberto e so fecha (-0.04, o
+                # setpoint de 12 mm) com a peca parada pela captura.
+                actions[:, 6:] = teacher_gripper_action(
+                    phase, gripper_closed, capture_anchor_part is not None)
                 _, _, terminated, truncated, _ = env.step(actions)
                 if capture_anchor_part is None and bool(base_env._belt_capture_paused[0]):
                     capture_anchor_part = (

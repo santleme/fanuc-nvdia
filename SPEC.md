@@ -775,3 +775,31 @@ TCP + observação relativa; 200 episódios, 89.000 passos):
   e só então descer os últimos centímetros e fechar sobre a peça
   PARADA, em vez de descer+fechar sobre a peça em movimento.
   Relançar a coleta sem essa correção reproduz o mesmo portão.
+
+### Correção: captura por proximidade + grasp em dois tempos (27/10/2026)
+
+Duas mudanças a partir da análise da coleta BC v3, aplicadas juntas e
+pré-registradas antes de qualquer nova corrida:
+
+1. **Captura por proximidade da estação** (`advance_conveyor`): a
+   esteira agora solta a peça para a física assim que o TCP entra no
+   raio de captura de 0,16 m (`capture_attempt = close_to_pick`), sem
+   exigir o pinch prévio. A regra antiga era o gargalo: a garra só
+   começa a fechar na descida, então a peça seguia em movimento
+   cinemático enquanto os dedos fechavam sobre ela. Comportamento de
+   estação real: a peça para quando o robô está em posição.
+2. **Grasp em dois tempos do professor** (`teacher_gripper_action`,
+   nos dois drivers, baseline e coletor): na fase grasp a garra fica
+   ABERTA até a captura parar a peça; só então fecha (setpoint de
+   12 mm). Do hold em diante fecha de qualquer jeito — captura que
+   nunca dispara degrada para o comportamento antigo, sem travar o
+   episódio.
+
+**Protocolo BC v4** (idêntico ao protocolo BC, sob a semântica
+corrigida): probe + baseline + coleta de 200 demos (seeds 1000+) →
+portão do professor ≥ 0,80 → BC 300 épocas → PPO warm-start
+256×1500 com marcador `BC_WARMSTART_APPLIED` → benchmark oficial.
+Veredito contra S68 = 0,0: PROVA ≥ 0,30 / PARCIAL > 0 / MATA ≤ 0.
+Ressalva registrada: v4 roda sob a regra de captura nova — o portão
+do professor é comparável dentro da mesma versão do env, e um
+eventual PROVA deve ser lido junto desta mudança de tarefa.

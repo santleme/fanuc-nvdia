@@ -376,21 +376,20 @@ def advance_conveyor(
     origins_z = env.scene.env_origins[env_ids, 2]
     on_belt = position[:, 2] - origins_z < top_z + part_half_height + 0.025
     robot = env.scene["robot"]
-    gripper_ids, _ = robot.find_joints(
-        ["gripper_left", "gripper_right"], preserve_order=True
-    )
-    # The 80 mm workpiece is pinched at about 6 mm joint travel per finger.
-    # Driving these prismatic joints to their 25 mm limit overcloses the jaws.
-    gripper_pinched = torch.all(
-        robot.data.joint_pos.torch[env_ids][:, gripper_ids] >= 0.004, dim=-1
-    )
     tool_ids, _ = robot.find_bodies("tool0", preserve_order=True)
     tcp = robot.data.body_pos_w.torch[env_ids, tool_ids[0]]
     close_to_pick = torch.linalg.vector_norm(position - tcp, dim=-1) < 0.16
-    # The belt position controller must release the workpiece to PhysX when
-    # the closed gripper reaches the capture zone. Otherwise a one-sided first
-    # touch can keep teleporting the part away before bilateral contact forms.
-    capture_attempt = gripper_pinched & close_to_pick
+    # Station-proximity stop (correcao pos-analise BC v3, 27/10/2026): the
+    # belt releases the workpiece to PhysX as soon as the tool is inside
+    # the capture zone, like a sensor at a real pick station. The old rule
+    # also required the gripper to be pinched first — but the gripper only
+    # starts closing during the descent, so the part kept being teleported
+    # while the fingers closed on it: across the 200 demo conditions of
+    # the BC v3 collection the teacher then lifted empty in 75 episodes
+    # and never touched the part in 14 (analise na SPEC). With the
+    # proximity stop the part halts mid-descent, jaws still open, and the
+    # teacher closes on a stationary, centered workpiece.
+    capture_attempt = close_to_pick
     if not hasattr(env, "_belt_capture_paused"):
         env._belt_capture_paused = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
         env._belt_capture_step = torch.full(

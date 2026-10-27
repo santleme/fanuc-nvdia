@@ -73,7 +73,8 @@ def test_reset_and_interval_terms_accept_isaaclab_full_environment_slice() -> No
     assert "int(env.common_step_counter) - env._belt_start_steps[env_ids]" in mdp
     assert "env._belt_speeds[env_ids] * elapsed_time" in mdp
     assert "velocity[on_belt, 0] = 0.0" in mdp
-    assert "capture_attempt = gripper_pinched & close_to_pick" in mdp
+    assert "capture_attempt = close_to_pick" in mdp
+    assert "gripper_pinched & close_to_pick" not in mdp
     assert "env._belt_capture_paused[env_ids] |= capture_attempt" in mdp
     assert "on_belt &= ~env._belt_capture_paused[env_ids]" in mdp
     assert "env._belt_capture_paused[env_ids] = False" in mdp

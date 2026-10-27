@@ -39,7 +39,7 @@ import torch
 
 from fanuc_cell.demos import DemoRecorder
 from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
-from fanuc_cell.task import CellConfig, make_demo_episode
+from fanuc_cell.task import CellConfig, make_demo_episode, teacher_gripper_action
 from fanuc_cell_lab.tasks.conveyor_pick_place.config.m10id12.env_cfg import (
     M10id12EnvCfg,
 )
@@ -121,7 +121,8 @@ def run_episode(env, base_env, seed: int, recorder: DemoRecorder) -> None:
                 fallback_seeds=(np.zeros(6),))
         actions[:, :6] = torch.as_tensor(
             command_joints, device=device).view(1, 6) / 3.2
-        actions[:, 6:] = -0.04 if gripper_closed else -1.0
+        actions[:, 6:] = teacher_gripper_action(
+            phase, gripper_closed, capture_anchor_part is not None)
         recorder.record(current_obs,
                         actions.detach().cpu().numpy()[0])
         obs, _, terminated, truncated, _ = env.step(actions)

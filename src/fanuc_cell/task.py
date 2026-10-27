@@ -91,6 +91,27 @@ class PickPlaceEpisode:
         return joints, part, gripper_closed, phase, success
 
 
+def teacher_gripper_action(phase: str, reference_closed: bool, captured: bool) -> float:
+    """Gripper command of the scripted teacher (two-stage grasp).
+
+    The reference timeline asks for the close from the grasp waypoint
+    on, but closing while the belt is still driving the workpiece is
+    what misaligned the grasp in the BC v3 collection (analysis in
+    SPEC): the part advances ``speed x delay`` during descent+close
+    and leaves the jaw center before the belt pauses. The teacher
+    therefore descends with the gripper OPEN (-1.0) and only closes
+    (-0.04, the 12 mm setpoint) once the belt capture has stopped the
+    part (``captured``). From the hold phase on it closes regardless,
+    so a capture that never fires degrades to the old timed behavior
+    instead of deadlocking the episode.
+    """
+    if not reference_closed:
+        return -1.0
+    if phase == "grasp" and not captured:
+        return -1.0
+    return -0.04
+
+
 def make_demo_episode(arm: SerialArm | None = None, config: CellConfig | None = None) -> PickPlaceEpisode:
     """Construct a repeatable baseline sequence with position-only IK."""
     arm = arm or SerialArm()
