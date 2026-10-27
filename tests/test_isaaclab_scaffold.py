@@ -168,3 +168,63 @@ def test_notebook_parses_list_shaped_benchmark_summary() -> None:
     # crashed the notebook after every stage had already passed.
     assert "evaluation_data.get('success_rate')" not in source
     assert "play success_rate" in source
+
+
+def test_v68_reward_is_staged_and_gated() -> None:
+    """v68 (issue #1): reach no ponto de grasp, place/lift travados no segurar."""
+    mdp = (OVERLAY / "mdp/cell.py").read_text()
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    # reach mira o ponto de grasp (peça - offset), kernel tanh largo
+    assert "tool_to_part_offset: tuple[float, float, float] = (0.095, 0.0, -0.02)" in mdp
+    assert "grasp_point = part - offset" in mdp
+    assert "1.0 - torch.tanh(distance / 0.1)" in mdp
+    # degrau intermediário: segurar (contato bilateral + garra fechada)
+    assert "def object_held(" in mdp
+    # place condicionado ao segurar — sem ótimo local da peça parada
+    assert "return tracking * object_held(env, robot_cfg, part_cfg)" in mdp
+    # lift binário por passo, travado no segurar
+    assert "lifted = above_belt & (object_held(env, robot_cfg, part_cfg) > 0.0)" in mdp
+    # cfg: termo novo + pesos staged
+    assert "grasp_contact = RewardTerm(func=mdp.object_held, weight=2.0)" in env_cfg
+    assert "lift = RewardTerm(func=mdp.object_lifted, weight=6.0)" in env_cfg
+
+
+def test_v68_contact_observations_and_curriculum() -> None:
+    """v68 (issue #1): política sente o toque; currículo de esteira em 3 fases."""
+    mdp = (OVERLAY / "mdp/cell.py").read_text()
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    assert "def finger_contact_forces(env)" in mdp
+    assert "finger_contact = ObservationTerm(func=mdp.finger_contact_forces)" in env_cfg
+    assert "def belt_difficulty_curriculum(" in mdp
+    assert "speed_levels: tuple = ((0.0, 0.0), (0.02, 0.04), (0.05, 0.10))" in mdp
+    assert 'getattr(env, "_belt_speed_range", (0.05, 0.10))' in mdp
+    assert 'getattr(env, "_belt_x_jitter", 0.10)' in mdp
+    assert "class CurriculumCfg:" in env_cfg
+    assert "belt_difficulty = CurriculumTerm(func=mdp.belt_difficulty_curriculum)" in env_cfg
+    assert "curriculum: CurriculumCfg = CurriculumCfg()" in env_cfg
+
+
+def test_newton_preset_is_available_but_inert() -> None:
+    """Issue #2: preset Newton/MJWarp existe; o default segue OvPhysX."""
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    assert "from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg" in env_cfg
+    assert "newton: NewtonCfg = NewtonCfg(" in env_cfg
+    assert 'integrator="implicitfast"' in env_cfg
+    assert "nconmax=512" in env_cfg
+    assert "default: OvPhysxCfg = ovphysx" in env_cfg
+
+
+def test_notebook_builder_parameterizes_experiment() -> None:
+    """Builder: física/escala/slug viram parâmetros; defaults = histórico."""
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+
+    assert '"--physics"' in builder
+    assert 'choices=("ovphysx", "newton")' in builder
+    assert '"--train-num-envs"' in builder and '"--train-max-iterations"' in builder
+    assert '"--kernel-slug"' in builder
+    assert "args.train_num_envs" in builder and "args.physics" in builder
+    # com defaults, nenhuma troca é aplicada (saída byte a byte a de sempre)
+    assert 'if args.physics != "ovphysx" or args.train_num_envs != 64' in builder

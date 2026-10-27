@@ -73,6 +73,22 @@ def main() -> None:
         default="NvidiaTeslaT4",
         help="Kaggle GPU shape; L4 is optional when the account receives it.",
     )
+    parser.add_argument(
+        "--physics",
+        choices=("ovphysx", "newton"),
+        default="ovphysx",
+        help="Backend de física do Isaac Lab 3.0 (preset da tarefa). "
+             "ovphysx = linha principal; newton = spike MuJoCo-Warp (issue #2).",
+    )
+    parser.add_argument("--train-num-envs", type=int, default=64)
+    parser.add_argument("--train-max-iterations", type=int, default=500)
+    parser.add_argument(
+        "--kernel-slug",
+        default=KERNEL_SLUG,
+        help="Slug do kernel no Kaggle; o spike Newton usa slug próprio "
+             "para não virar versão do kernel principal.",
+    )
+    parser.add_argument("--kernel-title", default="FANUC Conveyor Pick Place")
     args = parser.parse_args()
     KAGGLE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -435,11 +451,33 @@ def main() -> None:
         "nbformat": 4,
         "nbformat_minor": 5,
     }
+    # Parametrização do experimento (v68 / spike Newton): as células
+    # nascem com os defaults históricos (ovphysx, 64 envs, 500 it) e
+    # os tokens são trocados aqui, num lugar só — com os defaults, a
+    # saída é byte a byte a de sempre. O token de física cobre os
+    # comandos isaaclab, o extra do uv e o backend forçado no
+    # conversor URDF→USD (no caminho Newton, o conversor usa o preset
+    # newton em vez do ovphysx).
+    if args.physics != "ovphysx" or args.train_num_envs != 64 \
+            or args.train_max_iterations != 500:
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            source = source.replace("physics=ovphysx",
+                                    f"physics={args.physics}")
+            source = source.replace("'--extra', 'ovphysx'",
+                                    f"'--extra', '{args.physics}'")
+            source = source.replace('\\1"ovphysx"',
+                                    f'\\1"{args.physics}"')
+            source = source.replace(
+                "'--num_envs', '64', '--max_iterations', '500'",
+                f"'--num_envs', '{args.train_num_envs}', "
+                f"'--max_iterations', '{args.train_max_iterations}'")
+            cell["source"] = source.splitlines(keepends=True)
     notebook_path = KAGGLE_DIR / NOTEBOOK_NAME
     notebook_path.write_text(json.dumps(notebook, indent=1) + "\n")
     metadata = {
-        "id": f"{args.kaggle_user}/{KERNEL_SLUG}",
-        "title": "FANUC Conveyor Pick Place",
+        "id": f"{args.kaggle_user}/{args.kernel_slug}",
+        "title": args.kernel_title,
         "code_file": NOTEBOOK_NAME,
         "language": "python",
         "kernel_type": "notebook",
