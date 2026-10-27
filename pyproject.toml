@@ -12,6 +12,9 @@ dependencies = ["numpy>=2.0"]
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.8"]
 video = ["matplotlib>=3.9", "imageio-ffmpeg>=0.5"]
+# Diagnóstico visual de rollouts (issue #6): opcional, nunca requisito —
+# sem o SDK, fanuc_cell.rerun_log vira no-op. Uso: pip install .[rerun]
+rerun = ["rerun-sdk>=0.40"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

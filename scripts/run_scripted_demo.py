@@ -12,6 +12,11 @@ from isaaclab.app import add_launcher_args, launch_simulation
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--seed", type=int, default=23)
 parser.add_argument("--output", type=Path, default=Path("outputs/isaaclab-baseline.json"))
+parser.add_argument("--rerun", action="store_true",
+                    help="Grava .rrd do rollout para diagnóstico visual do "
+                         "grasp (issue #6; requer o extra opcional rerun-sdk).")
+parser.add_argument("--rerun-path", type=Path, default=None,
+                    help="Caminho do .rrd (default: ao lado do --output).")
 add_launcher_args(parser)
 args = parser.parse_args()
 
@@ -27,6 +32,7 @@ import numpy as np
 import torch
 
 from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
+from fanuc_cell.rerun_log import make_rollout_logger
 from fanuc_cell.task import CellConfig, make_demo_episode, teacher_gripper_action
 from fanuc_cell_lab.tasks.conveyor_pick_place.config.m10id12.env_cfg import M10id12EnvCfg
 from fanuc_cell_lab.tasks.conveyor_pick_place.mdp import object_at_goal
@@ -35,6 +41,15 @@ import fanuc_cell_lab.tasks  # noqa: F401
 
 def main() -> int:
     task_id = "Fanuc-Conveyor-PickPlace-M10id12-v0"
+    # Diagnóstico visual (issue #6): sem --rerun, logger é None e nada
+    # abaixo é chamado — comportamento idêntico ao histórico.
+    rerun_logger = make_rollout_logger(
+        args.rerun,
+        args.rerun_path or args.output.with_suffix(".rrd"),
+        app_id="fanuc_cell_baseline")
+    if rerun_logger is not None and not rerun_logger.active:
+        print("[rerun] --rerun pedido mas rerun-sdk ausente; "
+              "seguindo sem gravar .rrd", flush=True)
     cfg = M10id12EnvCfg()
     # O baseline é o portão físico do pipeline: valida contato/grasp nas
     # condições históricas (esteira 0,05–0,10 m/s, jitter 0,10 — os
@@ -95,6 +110,9 @@ def main() -> int:
             reference_arm = SerialArm()
             lift_origin_part = None
             capture_anchor_part = None
+            grasp_logged = False
+            if rerun_logger is not None:
+                rerun_logger.start_episode(0)
 
             for step in range(step_count):
                 elapsed = min(step * sim_step, episode.duration)
@@ -183,6 +201,26 @@ def main() -> int:
                     last_phase = phase
                 peak_left_force = max(peak_left_force, left_force_norm)
                 peak_right_force = max(peak_right_force, right_force_norm)
+                if rerun_logger is not None:
+                    grasped_now = bool(getattr(
+                        base_env, "_part_was_grasped",
+                        torch.zeros(1, dtype=torch.bool, device=device))[0])
+                    if grasped_now and not grasp_logged:
+                        rerun_logger.log_event("grasp")
+                        grasp_logged = True
+                    rerun_logger.log_step(
+                        step=step,
+                        time_s=elapsed,
+                        phase=phase,
+                        tcp_pos=(robot.data.body_pos_w.torch[0, tool_ids[0]]
+                                 - origin).detach().cpu().numpy(),
+                        part_pos=(part.data.root_pos_w.torch[0]
+                                  - origin).detach().cpu().numpy(),
+                        left_force_n=left_force_norm,
+                        right_force_n=right_force_norm,
+                        gripper_joints=robot.data.joint_pos.torch[
+                            0, joint_ids[6:8]].detach().cpu().numpy(),
+                    )
                 if bool(terminated[0] | truncated[0]):
                     break
 
@@ -215,6 +253,11 @@ def main() -> int:
                 "phase_snapshots": phase_snapshots,
                 "success": success,
             }
+            if rerun_logger is not None:
+                rerun_logger.finish_episode(success=success, grasped=grasped)
+                rrd_path = rerun_logger.finish()
+                if rrd_path is not None:
+                    report["rerun_recording"] = str(rrd_path)
         finally:
             env.close()
 
