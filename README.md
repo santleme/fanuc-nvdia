@@ -4,36 +4,30 @@ Projeto spec-driven para construir, validar e executar no Kaggle uma célula de
 manipulação industrial inspirada no FANUC M-10iD/12. O cenário tem esteira,
 peça, garra, ponto de retirada e zona de depósito.
 
-## Estado
+## Estado (27/10/2026)
 
-O spec está registrado em [SPEC.md](SPEC.md). O projeto inclui um proxy
-articulado de seis eixos, IK posicional e de pose completa, sequência de
-interceptação/place, URDF, e uma tarefa Isaac Lab manager-based com PPO,
-sensores de contato bilaterais e critérios de sucesso/falha.
+A pipeline completa está verde desde a v67: probe, baseline físico,
+treino PPO, playback com vídeo e benchmark oficial rodando de ponta a
+ponta no Kaggle (conta `pascalcoimbra`, T4). Marcos recentes:
 
-O notebook Kaggle em `kaggle/fanuc-conveyor-pick-place.ipynb` é enviado e
-executado com a CLI integrada da conta `pascalcoimbra`. A revisão 28 detectou
-2× Tesla T4, inicializou Isaac Lab 3.0.0/OvPhysX, passou os smokes oficial e da
-tarefa customizada, mas falhou no grasp físico. As revisões 29/30 descobriram
-o erro de tempo da esteira, deflexão no TCP e a peça presa à esteira durante o
-lift. A versão 36 registrou 77 passos com contato bilateral fechado, mas não
-levantou a peça. A análise do URDF encontrou um provável excesso de fechamento:
-25 mm por dedo atravessa a largura de 80 mm; o contato esperado é perto de 6 mm.
-A versão 37 foi salva no Kaggle sem execução com fechamento parcial, captura
-compatível e diagnóstico da pausa da esteira. A CLI ainda lista versões 35/36
-como RUNNING apesar dos logs mostrarem falha terminal, e recusou novo run pelo
-limite de duas sessões. O CLI oficial não tem comando de cancelamento; o SDK
-retornou 403. É preciso liberar essas duas sessões na interface Kaggle e então
-executar a 37, validando grasp/lift/place antes de liberar PPO, vídeo físico e
-avaliação. A v42 mediu 81,9 s no `uv sync` do Isaac Lab, 50,5 s no smoke
-Cartpole, 57,2 s na sincronização do projeto customizado e 21,1 s no setup local
-e render cinemático. O pedido explícito de L4 ainda recebeu 2×T4, então voltei a
-deixar T4 como acelerador padrão. A v43 está salva sem execução: não instala
-extras já presentes, não renderiza o vídeo cinemático em cada tentativa e roda o
-baseline antes de instalar o ambiente PPO ou executar smokes redundantes. O
-alvo foi ajustado para 14 mm após 10 mm produzir só ~2 N por dedo. O Kaggle
-recusou executar v43 porque ainda conta v40/v42 como sessões ativas, apesar dos
-logs terminais.
+- **v66/v67** — destravada a física OvPhysX (diagnóstico de clone modes:
+  a junta `--fix-base` do conversor envenenava os clones; correção =
+  `fix_root_link` no spawn, veredito na SPEC). Primeiro treino completo
+  e, com 64 envs, treino de 421 s; **success_rate oficial 0,0** — a
+  infraestrutura fechou e o gargalo virou aprendizado.
+- **v68 (rodando)** — reward em estágios + currículo de esteira +
+  observações de contato, 256 envs × 1500 iterações (issue #1;
+  protocolo e portões PROVA/PARCIAL/MATA na SPEC).
+- **Spike Newton/MJWarp (rodando)** — mesmo pipeline com
+  `physics=newton`, em kernel próprio `fanuc-newton-spike` (issue #2).
+- **Na fila** — BC warm-start a partir do professor scriptado (issue #3,
+  aberta), condicionado ao sinal da v68.
+
+Decisões e evidências: [SPEC.md](SPEC.md) (protocolos e vereditos),
+`docs/integracoes-decisao-2026-10-27.md` (integrações avaliadas),
+`docs/audit-2026-10-26-v65.md` (auditoria profunda) e
+`outputs-v67/` (artefatos da primeira pipeline verde, incl. o vídeo da
+política). Backlog pós-v68 em `docs/backlog-pos-v68.md`.
 
 ## Modelo de referência
 
