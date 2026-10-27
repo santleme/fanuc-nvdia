@@ -480,3 +480,59 @@ com success_rate e tempo de parede contra a v67.
 - **FAIL de engine**: baseline sem contato bilateral após o retune
   limitado → Newton sai de cena sem custo afundado; a linha OvPhysX
   segue como única.
+
+### Veredito da v68 — falha no probe, sem treino (27/10/2026)
+
+Status Kaggle `error` na versão lançada 27/10/2026 ~00:35
+(`pascalcoimbra/fanuc-conveyor-pick-place`, 256 envs × 1500 it).
+Pré-voo e testes locais verdes, e a corrida morreu no probe do
+ambiente: baseline, PPO, playback e benchmark nunca rodaram — não
+há success_rate, grasp, lift ou place para avaliar contra os
+portões PROVA/PARCIAL/MATA, que ficam **não avaliados**.
+
+Causa raiz, confirmada no código da main: `env_cfg.py` define
+`finger_contact = ObservationTerm(func=mdp.finger_contact_forces)`
+na classe `ObservationsCfg.PolicyCfg`, mas `mdp/__init__.py` não
+exporta `finger_contact_forces` (a função existe em `mdp/cell.py`).
+O import da tarefa quebra na definição da classe com
+`AttributeError: module 'fanuc_cell_lab.tasks.conveyor_pick_place.mdp'
+has no attribute 'finger_contact_forces'`, e o notebook aborta no
+probe. O mesmo `__init__.py` também não exporta `object_held` nem
+`belt_difficulty_curriculum`, que quebrariam em seguida em
+`RewardsCfg`/`CurriculumCfg` — a correção é completar as
+exportações, não redesenhar o MDP. Lição de teste: a suíte local
+passou 26/26 porque os testes novos são baseados em string
+(`assert "def finger_contact_forces(" in mdp`); falta um teste que
+importe o módulo e confira os atributos usados por `env_cfg`.
+
+Consequência para os portões: o gatilho da issue #3 **não dispara**
+— PARCIAL/MATA são resultados de aprendizado medido, e aqui não
+houve aprendizado algum. Nenhum relançamento pelo monitor: a
+correção (exportações + teste de atributo) volta para a conversa
+principal decidir antes de qualquer nova versão do kernel.
+
+### Veredito do spike Newton — falha na conversão, portão 0 não alcançado (27/10/2026)
+
+Status Kaggle `error` no kernel `pascalcoimbra/fanuc-newton-spike`
+(lançado junto com a v68). A corrida morreu antes do probe, na
+conversão URDF→USD do robô: baseline, PPO e comparação com a v67
+nunca rodaram, e nenhum portão (0, 1 ou 2) foi alcançado. O spike
+fica **inconclusivo** — nada aqui diz respeito ao solver
+MuJoCo-Warp em si.
+
+Causa raiz, confirmada no builder: a parametrização troca o token
+`'--extra', 'ovphysx'` por `'--extra', 'newton'` em TODOS os
+comandos do notebook, incluindo a conversão, que vira
+`uv run --extra importers --extra newton ...` — e o uv responde
+`error: Extra 'newton' is not defined in the 'optional-dependencies'
+table for 'isaaclab-dev'`. Extra do uv não é token de física: o
+conversor precisa manter os extras `importers`/`ovphysx`, e o
+token `newton` só pertence ao argumento `physics=` e ao preset
+da tarefa. A conferência do lançamento que contou
+`--extra newton` como prova de parametrização correta confundiu
+presença do token com correção do comando.
+
+Próximo passo, a decidir na conversa principal: corrigir o
+builder para não trocar o extra do conversor (e validar o
+notebook gerado comando por comando) antes de relançar o spike;
+sem isso, qualquer nova tentativa morre no mesmo ponto.
