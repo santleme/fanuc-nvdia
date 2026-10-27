@@ -418,3 +418,65 @@ teste de regressão; suíte 22/22. Artefatos (runtime-report, baseline,
 schema/summary do benchmark e o vídeo da política) recuperados por extração
 seletiva do `_output_.zip` de 16,5 GB via requisições range no diretório
 central ZIP64, salvos em `outputs-v67/` — sem baixar o zip inteiro.
+
+### Protocolo v68 — reward staged + currículo (pré-registrado em 27/10/2026)
+
+Experimento `fanuc-reward-curriculum-v68` (issue #1; decisão em
+`docs/integracoes-decisao-2026-10-27.md`). Diagnóstico pós-v67: o MDP
+tornava o grasp inalcançável por exploração — termo `grasp` em
+conjunção sem degraus, `place` sem trava pagando a peça parada (ótimo
+local), `reach` mirando o centro da peça, contato fora das
+observações, dificuldade cheia desde a iteração 0.
+
+Mudança única = MDP + escala declarada, no padrão das tarefas
+oficiais do Isaac Lab:
+
+- `reach` mira o ponto de grasp (peça − `tool_to_part_offset`),
+  kernel `1 − tanh(d/0.1)`;
+- termo novo `grasp_contact` (`object_held`, peso 2, por passo):
+  garra fechada + contato bilateral + peça no tool;
+- `lift` binário por passo (peso 6), travado no segurar;
+- `place` multiplicado pela trava `object_held`;
+- observações ganham as forças de contato dos dois dedos;
+- currículo de esteira em 3 fases por passo de treino (0–40% / 40–75%
+  / 75–100%): velocidade (0,0) → (0,02–0,04) → (0,05–0,10) m/s,
+  jitter 0 → 0,05 → 0,10;
+- escala: 256 envs × 1500 iterações × 24 passos (~9,2 M amostras);
+  demais hiperparâmetros idênticos à v67; benchmark oficial idêntico
+  (800 steps × 16 envs, seed 7 no treino).
+
+Veredito (impresso pelo notebook):
+
+- **PROVA**: success_rate ≥ 0,30 no benchmark e grasp sustentado na
+  fase de dificuldade cheia → reward/currículo viram o padrão da
+  tarefa; frente seguinte é o BC warm-start (issue #3) mirando 0,6+.
+- **PARCIAL**: grasp > 0,20 mas success < 0,30 → o gargalo migrou
+  para place/release; acionar a issue #3 antes de mais escala.
+- **MATA**: grasp ≈ 0 mesmo na fase 1 (peça estática) → parar de
+  gastar GPU em PPO puro; BC vira o experimento principal.
+
+Orçamento estimado: ~65–90 min de treino + overhead (~1h30–2h por
+kernel). Baseline físico (scriptado) continua sendo o portão antes do
+PPO: se o baseline falhar com o MDP novo, a corrida para no portão.
+
+### Protocolo do spike Newton (pré-registrado em 27/10/2026)
+
+Experimento `fanuc-newton-spike` (issue #2): a MESMA tarefa e o mesmo
+pipeline da v67, trocando só o preset de física para
+`physics=newton` (solver MuJoCo-Warp), em kernel separado
+(`--physics newton --kernel-slug fanuc-newton-spike` no builder).
+Baseline de comparação = v67/OvPhysX (421 s de treino, success 0.0).
+
+Portões em ordem: (0) importação do asset e probe finito nos 64 envs,
+com ganhos de atuador resolvidos conferidos (risco double-PD);
+(1) baseline scriptado registrando contato bilateral pelos sensores
+filtrados — sensor mudo invalida o spike; retune de contato limitado
+a ≤ 3 tentativas (nconmax/atrito/impratio); (2) PPO 500×64 sem NaN,
+com success_rate e tempo de parede contra a v67.
+
+- **PASS**: estágios verdes e (success > 0 ou termos grasp/lift/
+  release ativando onde a v67 zerou), tempo ≤ v67 → Newton vira
+  candidato a backend padrão para a frente de aprendizado.
+- **FAIL de engine**: baseline sem contato bilateral após o retune
+  limitado → Newton sai de cena sem custo afundado; a linha OvPhysX
+  segue como única.

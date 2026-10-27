@@ -41,32 +41,127 @@ def tcp_part_distance(
     env,
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     part_cfg: SceneEntityCfg = SceneEntityCfg("part"),
+    tool_to_part_offset: tuple[float, float, float] = (0.095, 0.0, -0.02),
 ) -> torch.Tensor:
-    """Dense reaching reward, highest when the tool is over the part."""
-    return torch.exp(-8.0 * torch.linalg.vector_norm(part_relative_to_tcp(env, robot_cfg, part_cfg), dim=-1))
+    """Dense reaching reward toward the GRASP point, not the part center.
+
+    Até a v67 este termo minimizava a distância TCP–centro da peça com
+    kernel ``exp(-8d)``: o gradiente empurrava o tool0 para DENTRO da
+    peça (a pose de grasp é deslocada de ``tool_to_part_offset``, a
+    mesma do baseline scriptado) e a 0,5 m o kernel já valia ~0,02.
+    Redesenho da v68 (issue #1): alvo = posição da peça menos o offset
+    de grasp, kernel ``1 - tanh(d/0.1)`` com gradiente útil largo, no
+    padrão das tarefas oficiais do Isaac Lab.
+    """
+    part = _part_position(env, part_cfg)
+    offset = torch.tensor(tool_to_part_offset, dtype=part.dtype,
+                          device=part.device)
+    grasp_point = part - offset
+    distance = torch.linalg.vector_norm(
+        grasp_point - _tcp_position(env, robot_cfg), dim=-1)
+    return 1.0 - torch.tanh(distance / 0.1)
+
+
+def _finger_contact_norms(env) -> tuple[torch.Tensor, torch.Tensor]:
+    """Norma da força normal filtrada (peça) em cada dedo, por env."""
+    left = env.scene["left_finger_contact"].data.normal_force_matrix_w.torch
+    right = env.scene["right_finger_contact"].data.normal_force_matrix_w.torch
+    left_norm = torch.linalg.vector_norm(left, dim=-1).squeeze(-1).squeeze(-1)
+    right_norm = torch.linalg.vector_norm(right, dim=-1).squeeze(-1).squeeze(-1)
+    return left_norm, right_norm
+
+
+def finger_contact_forces(env) -> torch.Tensor:
+    """Observação: força de contato dos dois dedos (fecha o grasp no escuro).
+
+    Os sensores já existiam para o reward, mas não estavam nas
+    observações — a política fechava a garra sem sentir o toque
+    (diagnóstico D6 da issue #1). Duas dimensões por env.
+    """
+    left_norm, right_norm = _finger_contact_norms(env)
+    return torch.stack((left_norm, right_norm), dim=-1)
+
+
+def _gripper_closed(env, robot_cfg: SceneEntityCfg,
+                    closed_joint_position: float) -> torch.Tensor:
+    robot = env.scene[robot_cfg.name]
+    gripper_ids, _ = robot.find_joints(
+        ["gripper_left", "gripper_right"], preserve_order=True
+    )
+    return torch.all(
+        robot.data.joint_pos.torch[:, gripper_ids] >= closed_joint_position,
+        dim=-1,
+    )
+
+
+def object_held(
+    env,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    part_cfg: SceneEntityCfg = SceneEntityCfg("part"),
+    tool_distance: float = 0.14,
+    closed_joint_position: float = 0.004,
+    contact_force: float = 0.01,
+) -> torch.Tensor:
+    """Sinal por passo: garra fechada + contato bilateral + peça no tool.
+
+    É o degrau intermediário que faltava entre o reach e o grasp
+    completo (que ainda exige o lift): paga por SEGURAR a peça, a cada
+    passo, e serve de trava para condicionar lift e place — sem ele, o
+    place pagava a peça parada na esteira (ótimo local da v67).
+    """
+    left_norm, right_norm = _finger_contact_norms(env)
+    bilateral_contact = (left_norm > contact_force) & (right_norm > contact_force)
+    near_tool = torch.linalg.vector_norm(
+        _part_position(env, part_cfg) - _tcp_position(env, robot_cfg),
+        dim=-1,
+    ) < tool_distance
+    held = _gripper_closed(env, robot_cfg, closed_joint_position) \
+        & bilateral_contact & near_tool
+    return held.to(dtype=_part_position(env, part_cfg).dtype)
 
 
 def object_goal_distance(
     env,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     part_cfg: SceneEntityCfg = SceneEntityCfg("part"),
     goal_xyz: tuple[float, float, float] = (0.80, -0.58, 0.28),
 ) -> torch.Tensor:
-    """Dense placement reward for the workpiece center."""
+    """Dense placement reward, GATED by holding the part (v68).
+
+    Até a v67 este termo pagava pela posição da peça no mundo, segurada
+    ou não — a peça parada na esteira já rendia ~0,05–0,1/passo de
+    graça, o ótimo local que a política encontrou. Agora o goal
+    tracking é multiplicado por ``object_held`` (como a tarefa oficial
+    multiplica pelo indicador de lift): empurrar a peça pelo chão não
+    paga nada.
+    """
     part = _part_position(env, part_cfg)
     target = torch.tensor(goal_xyz, dtype=part.dtype, device=part.device)
     target = target + env.scene.env_origins
-    return torch.exp(-5.0 * torch.linalg.vector_norm(part - target, dim=-1))
+    tracking = torch.exp(-5.0 * torch.linalg.vector_norm(part - target, dim=-1))
+    return tracking * object_held(env, robot_cfg, part_cfg)
 
 
 def object_lifted(
     env,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     part_cfg: SceneEntityCfg = SceneEntityCfg("part"),
     belt_top: float = 0.11,
     part_half_height: float = 0.04,
+    lift_clearance: float = 0.02,
 ) -> torch.Tensor:
-    """Reward lifting the part clear of the conveyor surface."""
+    """Binary per-step lift reward, gated by holding the part (v68).
+
+    Até a v67 era proporcional ao quanto a peça subiu — e a peça só
+    sobe depois de um grasp que o reward não ajudava a descobrir. No
+    padrão da tarefa oficial: binário, pago a CADA passo enquanto a
+    peça segurada estiver acima da esteira — vira renda contínua que
+    sustenta o comportamento depois da primeira descoberta.
+    """
     z = _part_position(env, part_cfg)[:, 2] - env.scene.env_origins[:, 2]
-    return torch.clamp(z - belt_top - part_half_height, min=0.0, max=0.25)
+    above_belt = z > belt_top + part_half_height + lift_clearance
+    lifted = above_belt & (object_held(env, robot_cfg, part_cfg) > 0.0)
+    return lifted.to(dtype=z.dtype)
 
 
 def object_grasped(
@@ -188,12 +283,23 @@ def reset_part(
     env_ids: torch.Tensor | slice,
     part_cfg: SceneEntityCfg = SceneEntityCfg("part"),
     belt_start_x: float = 0.80,
-    belt_x_jitter: float = 0.10,
+    belt_x_jitter: float | None = None,
     belt_y: float = 0.0,
     part_center_z: float = 0.15,
-    speed_range: tuple[float, float] = (0.05, 0.10),
+    speed_range: tuple[float, float] | None = None,
 ) -> None:
-    """Randomize a new workpiece arrival and conveyor speed on reset."""
+    """Randomize a new workpiece arrival and conveyor speed on reset.
+
+    ``speed_range``/``belt_x_jitter`` None (o default) = usar a
+    dificuldade corrente do currículo (``env._belt_speed_range`` /
+    ``env._belt_x_jitter``, definidos por ``belt_difficulty_curriculum``),
+    com fallback para a faixa cheia histórica. Parâmetro explícito
+    continua vencendo — é como o baseline e os testes fixam a cena.
+    """
+    if speed_range is None:
+        speed_range = getattr(env, "_belt_speed_range", (0.05, 0.10))
+    if belt_x_jitter is None:
+        belt_x_jitter = getattr(env, "_belt_x_jitter", 0.10)
     env_ids = _resolve_env_ids(env, env_ids)
     part = env.scene[part_cfg.name]
     count = env_ids.numel()
@@ -225,6 +331,35 @@ def reset_part(
     if not hasattr(env, "_part_was_grasped"):
         env._part_was_grasped = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
     env._part_was_grasped[env_ids] = False
+
+
+def belt_difficulty_curriculum(
+    env,
+    env_ids,
+    speed_levels: tuple = ((0.0, 0.0), (0.02, 0.04), (0.05, 0.10)),
+    jitter_levels: tuple = (0.0, 0.05, 0.10),
+    level_steps: tuple = (14400, 27000),
+) -> float:
+    """Currículo de dificuldade da esteira em 3 fases (v68, issue #1).
+
+    Fase 1: peça ESTÁTICA no ponto de pick — o PPO aprende o grasp sem
+    alvo móvel. Fase 2: esteira lenta. Fase 3: faixa cheia histórica
+    (0,05–0,10 m/s + jitter 0,10). A função só grava a dificuldade
+    corrente em atributos do env; quem consome é o ``reset_part``
+    (default None), sem depender de internals do CurriculumManager
+    além da chamada por passo. Os limiares em passos assumem a escala
+    da v68 (1500 iterações × 24 passos = 36000): 40% e 75% do treino.
+    Devolve o nível corrente (log do CurriculumManager).
+    """
+    step = int(env.common_step_counter)
+    level = 0
+    for threshold in level_steps:
+        if step >= threshold:
+            level += 1
+    level = min(level, len(speed_levels) - 1)
+    env._belt_speed_range = tuple(speed_levels[level])
+    env._belt_x_jitter = float(jitter_levels[level])
+    return float(level)
 
 
 def advance_conveyor(

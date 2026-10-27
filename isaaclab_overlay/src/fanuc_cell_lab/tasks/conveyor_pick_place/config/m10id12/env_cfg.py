@@ -7,6 +7,7 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg, mdp as common_mdp
 from isaaclab.managers import (
+    CurriculumTermCfg as CurriculumTerm,
     EventTermCfg as EventTerm,
     ObservationGroupCfg as ObservationGroup,
     ObservationTermCfg as ObservationTerm,
@@ -19,6 +20,7 @@ from isaaclab.sensors import ContactSensorCfg
 from isaaclab.sim import SimulationCfg
 from isaaclab.utils import configclass
 from isaaclab.visualizers import VisualizerCfg
+from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
 from isaaclab_ov.physics import OvPhysxCfg
 from isaaclab_tasks.utils import PresetCfg
 
@@ -28,9 +30,25 @@ from ... import mdp
 
 @configclass
 class CellPhysicsCfg(PresetCfg):
-    """Kit-less NVIDIA PhysX backend used for the conveyor cell."""
+    """Physics backends da célula: OvPhysX (linha principal) e Newton.
+
+    O preset ``newton`` (issue #2 — spike do backend MuJoCo-Warp) é
+    inerte enquanto o token for ``physics=ovphysx``: trocar o backend
+    é trocar o token nos comandos do notebook, sem tocar na tarefa.
+    MJWarp é o solver do spike (contato macio da família MuJoCo);
+    ``nconmax`` explícito porque o MJWarp descarta contatos em
+    silêncio ao estourar o buffer pré-alocado.
+    """
 
     ovphysx: OvPhysxCfg = OvPhysxCfg()
+    newton: NewtonCfg = NewtonCfg(
+        solver_cfg=MJWarpSolverCfg(
+            integrator="implicitfast",
+            cone="pyramidal",
+            nconmax=512,
+            njmax=1024,
+        )
+    )
     default: OvPhysxCfg = ovphysx
 
 
@@ -177,6 +195,10 @@ class ObservationsCfg:
             func=common_mdp.root_lin_vel_w,
             params={"asset_cfg": SceneEntityCfg("part")},
         )
+        # v68 (issue #1, D6): a política precisa SENTIR o toque para
+        # cronometrar o fecho da garra — os sensores já existiam para
+        # o reward, agora entram também na observação.
+        finger_contact = ObservationTerm(func=mdp.finger_contact_forces)
 
         def __post_init__(self) -> None:
             self.concatenate_terms = True
@@ -203,16 +225,31 @@ class EventsCfg:
 
 @configclass
 class RewardsCfg:
-    """Dense task rewards plus a completion metric for policy evaluation."""
+    """Dense task rewards plus a completion metric for policy evaluation.
+
+    Redesenho staged da v68 (issue #1, padrão das tarefas oficiais):
+    reach mira o ponto de grasp; ``grasp_contact`` paga por passo o
+    ato de segurar; ``lift`` virou binário por passo travado no
+    segurar; ``place`` é multiplicado pela mesma trava (sem ótimo
+    local da peça parada); ``grasp``/``release`` seguem como eventos.
+    """
 
     reach = RewardTerm(func=mdp.tcp_part_distance, weight=1.0)
-    lift = RewardTerm(func=mdp.object_lifted, weight=4.0)
+    grasp_contact = RewardTerm(func=mdp.object_held, weight=2.0)
+    lift = RewardTerm(func=mdp.object_lifted, weight=6.0)
     grasp = RewardTerm(func=mdp.object_grasped, weight=8.0)
     place = RewardTerm(func=mdp.object_goal_distance, weight=4.0)
     release = RewardTerm(func=mdp.object_released_at_goal, weight=20.0)
     lost = RewardTerm(func=mdp.object_lost, weight=-10.0)
     action_rate = RewardTerm(func=common_mdp.action_rate_l2, weight=-0.005)
     success_rate = RewardTerm(func=mdp.ObjectPlacementSuccessRate, weight=0.0)
+
+
+@configclass
+class CurriculumCfg:
+    """Currículo de dificuldade da esteira (v68): ver mdp/cell.py."""
+
+    belt_difficulty = CurriculumTerm(func=mdp.belt_difficulty_curriculum)
 
 
 @configclass
@@ -232,6 +269,7 @@ class M10id12EnvCfg(ManagerBasedRLEnvCfg):
     events: EventsCfg = EventsCfg()
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
     sim: SimulationCfg = SimulationCfg(physics=CellPhysicsCfg())
 
     def __post_init__(self) -> None:
