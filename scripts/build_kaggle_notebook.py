@@ -7,6 +7,7 @@ import base64
 import hashlib
 import io
 import json
+import re
 import zipfile
 from pathlib import Path
 
@@ -26,9 +27,14 @@ def bundled_project() -> str:
         "src/fanuc_cell/kinematics.py",
         "src/fanuc_cell/task.py",
         "src/fanuc_cell/render.py",
+        "src/fanuc_cell/demos.py",
+        "src/fanuc_cell/bc.py",
         "scripts/render_demo.py",
         "scripts/run_scripted_demo.py",
         "scripts/diagnose_training_nan.py",
+        "scripts/collect_demos.py",
+        "scripts/pretrain_bc.py",
+        "scripts/train_ppo_bc.py",
         "tests/test_kinematics.py",
         "tests/test_task.py",
         "tests/test_static_clearance.py",
@@ -89,7 +95,17 @@ def main() -> None:
              "para não virar versão do kernel principal.",
     )
     parser.add_argument("--kernel-title", default="FANUC Conveyor Pick Place")
+    parser.add_argument(
+        "--bc-warmstart", action="store_true",
+        help="Experimento BC (issue #3): coleta demos do professor, "
+             "pré-treina o ator e treina o PPO pela entrada warm-start. "
+             "Default desligado — o kernel normal não muda.",
+    )
+    parser.add_argument("--bc-episodes", type=int, default=200,
+                        help="Episódios de demonstração coletados (com --bc-warmstart).")
     args = parser.parse_args()
+    if args.bc_warmstart and args.physics != "ovphysx":
+        parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
     KAGGLE_DIR.mkdir(parents=True, exist_ok=True)
 
     notebook = {
@@ -472,6 +488,69 @@ def main() -> None:
                 "'--num_envs', '64', '--max_iterations', '500'",
                 f"'--num_envs', '{args.train_num_envs}', "
                 f"'--max_iterations', '{args.train_max_iterations}'")
+            cell["source"] = source.splitlines(keepends=True)
+    # Experimento BC (issue #3), só com --bc-warmstart: copia os
+    # scripts BC para o projeto gerado, insere coleta+pré-treino
+    # antes do treino e troca o comando de treino pela entrada
+    # warm-start (scripts/train_ppo_bc.py). Sem a flag, nada aqui roda
+    # e o notebook é o de sempre.
+    if args.bc_warmstart:
+        bc_block = (
+            "    bc_collect = run(['uv', 'run', '--extra', 'ovphysx', 'python',\n"
+            "                      str(project_dir / 'scripts' / 'collect_demos.py'),\n"
+            f"                      '--episodes', '{args.bc_episodes}', '--seed', '1000',\n"
+            "                      '--output', '/kaggle/working/bc-demos.npz'],\n"
+            "                     cwd=source_dir, env=baseline_env)\n"
+            "    runtime_report['bc_collect_exit'] = bc_collect.returncode\n"
+            "    runtime_report['bc_collect_stdout'] = bc_collect.stdout[-8000:]\n"
+            "    runtime_report['bc_collect_stderr'] = bc_collect.stderr[-8000:]\n"
+            "    print(bc_collect.stdout[-8000:])\n"
+            "    if bc_collect.returncode != 0:\n"
+            "        save_report()\n"
+            "        raise RuntimeError('BC demo collection failed: ' + bc_collect.stderr[-4000:])\n"
+            "    bc_env = os.environ.copy()\n"
+            "    bc_env['PYTHONPATH'] = str(project_dir / 'src') + os.pathsep + bc_env.get('PYTHONPATH', '')\n"
+            "    bc_train = run([sys.executable, str(project_dir / 'scripts' / 'pretrain_bc.py'),\n"
+            "                    '--demos', '/kaggle/working/bc-demos.npz',\n"
+            "                    '--out', '/kaggle/working/bc-actor.npz',\n"
+            "                    '--report', '/kaggle/working/bc-report.json'],\n"
+            "                   cwd=project_dir, env=bc_env)\n"
+            "    runtime_report['bc_pretrain_exit'] = bc_train.returncode\n"
+            "    runtime_report['bc_pretrain_stdout'] = bc_train.stdout[-8000:]\n"
+            "    runtime_report['bc_pretrain_stderr'] = bc_train.stderr[-8000:]\n"
+            "    print(bc_train.stdout[-8000:])\n"
+            "    if bc_train.returncode != 0:\n"
+            "        save_report()\n"
+            "        raise RuntimeError('BC pretrain failed or demo-quality gate rejected the demos.')\n"
+            "    runtime_report['bc_report'] = json.loads(Path('/kaggle/working/bc-report.json').read_text())\n"
+        )
+        copies = (
+            "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/collect_demos.py',\n"
+            "                 project_dir / 'scripts' / 'collect_demos.py')\n"
+            "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/pretrain_bc.py',\n"
+            "                 project_dir / 'scripts' / 'pretrain_bc.py')\n"
+            "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/train_ppo_bc.py',\n"
+            "                 project_dir / 'scripts' / 'train_ppo_bc.py')\n"
+        )
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if "diagnose_training_nan.py')" in source and "collect_demos" not in source:
+                anchor = ("project_dir / 'scripts' / 'diagnose_training_nan.py')\n")
+                source = source.replace(anchor, anchor + copies, 1)
+            if "task_sync = run(['uv', 'sync'], cwd=project_dir)" in source:
+                anchor = "    task_sync = run(['uv', 'sync'], cwd=project_dir)\n"
+                source = source.replace(anchor, bc_block + anchor, 1)
+                source = re.sub(
+                    r"\['uv', 'run', '--extra', 'ovphysx', 'isaaclab', 'train',"
+                    r" '--rl_library', 'rsl_rl',",
+                    "['uv', 'run', '--extra', 'ovphysx', 'python', "
+                    "str(project_dir / 'scripts' / 'train_ppo_bc.py'), "
+                    "'--bc-weights', '/kaggle/working/bc-actor.npz',",
+                    source, count=1)
+                source = re.sub(
+                    r"'--seed', '7', 'physics=ovphysx'\], cwd=project_dir\)",
+                    "'--seed', '7'], cwd=project_dir)",
+                    source, count=1)
             cell["source"] = source.splitlines(keepends=True)
     notebook_path = KAGGLE_DIR / NOTEBOOK_NAME
     notebook_path.write_text(json.dumps(notebook, indent=1) + "\n")

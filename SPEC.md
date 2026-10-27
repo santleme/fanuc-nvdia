@@ -480,3 +480,62 @@ com success_rate e tempo de parede contra a v67.
 - **FAIL de engine**: baseline sem contato bilateral após o retune
   limitado → Newton sai de cena sem custo afundado; a linha OvPhysX
   segue como única.
+
+### Protocolo do experimento BC — warm-start do professor (pré-registrado em 27/10/2026)
+
+Experimento `fanuc-bc-warmstart` (issue #3). Preparação mergeada antes
+do veredito da v68 (coletor, BC em numpy, entrada de treino
+warm-start) para o lançamento ser imediato quando o gatilho disparar.
+
+**Gatilho** (veredito da v68, seção "Protocolo v68" acima): PARCIAL ou
+MATA. Com PROVA da v68, o BC roda na rodada seguinte mirando 0,6+,
+com baseline = success da v68.
+
+**Hipótese:** semear o ator com behavior cloning das demonstrações
+do professor scriptado (que completa o ciclo grasp→lift→place no
+baseline físico desde a v51) coloca o PPO dentro da região de grasp
+desde a iteração 0; com o reward staged da v68 segurando o
+comportamento, o success_rate supera o da v68 na mesma escala.
+
+**Pipeline do kernel** (builder `--bc-warmstart`, slug separado
+`fanuc-bc-warmstart`; o kernel principal não muda):
+1. Portões de sempre: probe anti-NaN → baseline físico aprovado.
+2. Coleta: `scripts/collect_demos.py`, 200 episódios sequenciais do
+   professor (seeds 1000+), pares (obs do grupo policy, ação) em
+   `.npz` via `fanuc_cell.demos`. Limitação v1 registrada: coleta
+   1-env sequencial (~385 passos/episódio); professor vetorizado é
+   trabalho futuro, não deste experimento.
+3. Portão das demos: success do professor ≥ 0,80 na coleta
+   (`pretrain_bc.py` exit 3 abaixo disso) — demo ruim não vira BC.
+4. BC: `fanuc_cell.bc` (MLP [256,128,64] ELU, espelho do ator),
+   300 épocas, MSE nas ações; relatório com perda inicial/final.
+5. Portão de fumaça da entrada warm-start: o treino usa
+   `scripts/train_ppo_bc.py` (runner RSL-RL padrão + injeção dos
+   pesos por ordem de camadas, marcador `BC_WARMSTART_APPLIED` no
+   log com shapes conferidos; divergência de arquitetura aborta
+   ANTES do learn). Primeira corrida BC que não imprimir o marcador
+   = experimento inválido, não veredito.
+6. PPO idêntico à v68 (256 envs × 1500 it, seed 7, mesmo benchmark
+   oficial) — a única diferença é o ponto de partida do ator.
+
+**Métricas:** primária = success_rate no benchmark oficial.
+Secundárias: grasp/lift/release do treino (o warm-start deve mostrar
+grasp > 0 desde as primeiras iterações — é a assinatura do
+mecanismo), perda do BC, taxa de contato sustentada no fine-tune
+(degradação da "gramática de contato" = alerta registrado na issue).
+
+**Veredito** (baseline S68 = success_rate oficial da v68):
+- **PROVA**: success ≥ max(0,30; S68 + 0,10) → warm-start vira o
+  ponto de partida padrão das próximas corridas; frente seguinte:
+  DAgger ou escala, mirando 0,6+.
+- **PARCIAL**: success > S68 mas abaixo da faixa de PROVA, ou grasp
+  sustentado sem place → o gargalo migrou; iterar nos estágios
+  finais do reward antes de mais BC.
+- **MATA**: success ≤ S68 (ou grasp ≈ 0 mesmo com warm-start) → o
+  problema não é exploração: é observabilidade/capacidade (o
+  professor usa estado interno não observável — âncora de captura,
+  máquina de fases). Próxima frente vira estudo de observações/
+  memória (ator recorrente ou obs enriquecida), não mais demos.
+
+Orçamento estimado: coleta ~15–35 min (sequencial) + BC ~1 min +
+treino ~1h30–2h = kernel de ~2–2,5 h.
