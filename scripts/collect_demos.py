@@ -28,6 +28,11 @@ parser.add_argument("--seed", type=int, default=1000,
                     help="Seed base; o episódio i usa seed+i.")
 parser.add_argument("--output", type=Path,
                     default=Path("outputs/bc-demos.npz"))
+parser.add_argument("--rerun", action="store_true",
+                    help="Grava .rrd dos rollouts para diagnóstico visual "
+                         "do grasp (issue #6; extra opcional rerun-sdk).")
+parser.add_argument("--rerun-path", type=Path, default=None,
+                    help="Caminho do .rrd (default: ao lado do --output).")
 add_launcher_args(parser)
 args = parser.parse_args()
 args.physics = "ovphysx"
@@ -39,6 +44,7 @@ import torch
 
 from fanuc_cell.demos import DemoRecorder
 from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
+from fanuc_cell.rerun_log import make_rollout_logger
 from fanuc_cell.task import CellConfig, make_demo_episode, teacher_gripper_action
 from fanuc_cell_lab.tasks.conveyor_pick_place.config.m10id12.env_cfg import (
     M10id12EnvCfg,
@@ -58,7 +64,8 @@ def _policy_obs(obs) -> np.ndarray:
     return np.asarray(vec, dtype=np.float32)[0]
 
 
-def run_episode(env, base_env, seed: int, recorder: DemoRecorder) -> None:
+def run_episode(env, base_env, seed: int, recorder: DemoRecorder,
+                logger=None, episode_index: int = 0) -> None:
     """Um rollout do professor, gravando (obs, ação) a cada passo."""
     obs, _ = env.reset(seed=seed)
     part = base_env.scene["part"]
@@ -85,11 +92,18 @@ def run_episode(env, base_env, seed: int, recorder: DemoRecorder) -> None:
     device = base_env.device
     actions = torch.zeros((1, 8), dtype=torch.float32, device=device)
     robot = base_env.scene["robot"]
+    tool_ids, _ = robot.find_bodies("tool0", preserve_order=True)
+    gripper_ids, _ = robot.find_joints(
+        ["gripper_left", "gripper_right"], preserve_order=True)
     reference_arm = SerialArm()
     lift_origin_part = None
     capture_anchor_part = None
     last_phase = None
     success_seen = False
+    grasp_logged = False
+    capture_logged = False
+    if logger is not None:
+        logger.start_episode(episode_index)
 
     recorder.begin_episode()
     current_obs = _policy_obs(obs)
@@ -132,16 +146,45 @@ def run_episode(env, base_env, seed: int, recorder: DemoRecorder) -> None:
             capture_anchor_part = (
                 part.data.root_pos_w.torch[0] - origin
             ).detach().cpu().numpy().copy()
+            if logger is not None and not capture_logged:
+                logger.log_event("belt_capture")
+                capture_logged = True
         if bool(object_at_goal(base_env)[0]):
             success_seen = True
+        if logger is not None:
+            left_force = base_env.scene[
+                "left_finger_contact"].data.normal_force_matrix_w.torch[0]
+            right_force = base_env.scene[
+                "right_finger_contact"].data.normal_force_matrix_w.torch[0]
+            grasped_now = bool(getattr(
+                base_env, "_part_was_grasped",
+                torch.zeros(1, dtype=torch.bool, device=device))[0])
+            if grasped_now and not grasp_logged:
+                logger.log_event("grasp")
+                grasp_logged = True
+            logger.log_step(
+                step=step,
+                time_s=elapsed,
+                phase=phase,
+                tcp_pos=(robot.data.body_pos_w.torch[0, tool_ids[0]]
+                         - origin).detach().cpu().numpy(),
+                part_pos=(part.data.root_pos_w.torch[0]
+                          - origin).detach().cpu().numpy(),
+                left_force_n=float(torch.linalg.vector_norm(left_force)),
+                right_force_n=float(torch.linalg.vector_norm(right_force)),
+                gripper_joints=robot.data.joint_pos.torch[
+                    0, gripper_ids].detach().cpu().numpy(),
+            )
         last_phase = phase
         if bool(terminated[0] | truncated[0]):
             break
     grasped = bool(getattr(
         base_env, "_part_was_grasped",
         torch.zeros(1, dtype=torch.bool, device=device))[0])
-    recorder.end_episode(success=success_seen or bool(
-        object_at_goal(base_env)[0]), grasped=grasped)
+    success_final = success_seen or bool(object_at_goal(base_env)[0])
+    recorder.end_episode(success=success_final, grasped=grasped)
+    if logger is not None:
+        logger.finish_episode(success=success_final, grasped=grasped)
 
 
 def main() -> int:
@@ -168,6 +211,15 @@ def main() -> int:
         "seed_base": args.seed,
         "episodes_requested": args.episodes,
     })
+    # Diagnóstico visual (issue #6): sem --rerun, logger é None e
+    # nenhum log_step é chamado — coleta byte a byte a atual.
+    rerun_logger = make_rollout_logger(
+        args.rerun,
+        args.rerun_path or args.output.with_suffix(".rrd"),
+        app_id="fanuc_cell_collect_demos")
+    if rerun_logger is not None and not rerun_logger.active:
+        print("[rerun] --rerun pedido mas rerun-sdk ausente; "
+              "seguindo sem gravar .rrd", flush=True)
     with launch_simulation(cfg, args) as physics_cfg:
         cfg.sim.physics = physics_cfg
         env = gym.make(task_id, cfg=cfg)
@@ -176,7 +228,8 @@ def main() -> int:
             ik_failures = 0
             for ep in range(args.episodes):
                 try:
-                    run_episode(env, base_env, args.seed + ep, recorder)
+                    run_episode(env, base_env, args.seed + ep, recorder,
+                                logger=rerun_logger, episode_index=ep)
                 except ValueError:
                     # IK sem convergência mesmo com fallback (v1 do
                     # kernel BC morreu assim no episódio 76/200): o
@@ -184,6 +237,10 @@ def main() -> int:
                     # e a coleta segue — sem pares parciais no BC.
                     recorder.register_failed_episode()
                     ik_failures += 1
+                    if rerun_logger is not None:
+                        rerun_logger.log_event("ik_failure", episode=ep)
+                        rerun_logger.finish_episode(success=False,
+                                                    grasped=False)
                     print(f"[collect] episodio {ep + 1}/{args.episodes} "
                           "abortado (IK); registrado como falha",
                           flush=True)
@@ -198,6 +255,10 @@ def main() -> int:
     summary = demos.summary()
     summary["ik_failed_episodes"] = ik_failures
     summary["output"] = str(args.output)
+    if rerun_logger is not None:
+        rrd_path = rerun_logger.finish()
+        if rrd_path is not None:
+            summary["rerun_recording"] = str(rrd_path)
     print(json.dumps(summary, indent=2))
     return 0
 
