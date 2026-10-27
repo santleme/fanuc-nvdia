@@ -18,6 +18,7 @@ início do kernel, nunca no meio do treino.
 from __future__ import annotations
 
 import argparse
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -128,10 +129,16 @@ def main() -> int:
             runner = OnPolicyRunner(
                 env, agent_cfg.to_dict(), log_dir=str(log_dir),
                 device=agent_cfg.device)
-            inject_bc_weights(runner, args.bc_weights)
+            warmstart_info = inject_bc_weights(runner, args.bc_weights)
+            # Registro duravel do warm-start: o runtime-report do
+            # notebook guarda so a cauda do stdout e o marcador
+            # impresso na injecao ficou fora dela na BC v6.
+            Path("bc-warmstart.json").write_text(
+                json.dumps(warmstart_info, indent=1))
             runner.learn(
                 num_learning_iterations=agent_cfg.max_iterations,
                 init_at_random_ep_len=True)
+            print("BC_WARMSTART_APPLIED", warmstart_info, flush=True)
         finally:
             env.close()
     return 0

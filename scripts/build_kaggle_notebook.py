@@ -108,6 +108,14 @@ def main() -> None:
     args = parser.parse_args()
     if args.bc_warmstart and args.physics != "ovphysx":
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
+    if args.bc_warmstart and args.train_num_envs == 64 \
+            and args.train_max_iterations == 500:
+        # Regressao da BC v6: sem as flags, o treino warm-start saiu
+        # 64x500 (defaults da linha principal) em vez dos 256x1500 do
+        # protocolo — a corrida inteira ficou fora do protocolo.
+        parser.error("--bc-warmstart exige a escala explicita do "
+                     "protocolo: --train-num-envs 256 "
+                     "--train-max-iterations 1500")
     KAGGLE_DIR.mkdir(parents=True, exist_ok=True)
 
     notebook = {
@@ -561,6 +569,16 @@ def main() -> None:
                     r"'--seed', '7', 'physics=ovphysx'\], cwd=project_dir\)",
                     "'--seed', '7'], cwd=project_dir)",
                     source, count=1)
+                # Playback e benchmark com o checkpoint EXPLICITO: o
+                # '--checkpoint latest' do entrypoint unificado exige
+                # um manifesto de run que so o `isaaclab train`
+                # oficial escreve; o treino warm-start (runner direto)
+                # nao escreve — foi o que matou o playback da BC v6
+                # depois do treino completo. `checkpoints` ja esta
+                # calculado na celula (glob ordenado por mtime).
+                source = source.replace(
+                    "'--checkpoint', 'latest',",
+                    "'--checkpoint', str(checkpoints[-1]),")
             cell["source"] = source.splitlines(keepends=True)
     notebook_path = KAGGLE_DIR / NOTEBOOK_NAME
     notebook_path.write_text(json.dumps(notebook, indent=1) + "\n")

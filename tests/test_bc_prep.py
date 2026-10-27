@@ -201,3 +201,15 @@ def test_drivers_use_ik_fallback() -> None:
         assert "fallback_seeds" in (ROOT / script).read_text()
     collector = (ROOT / "scripts/collect_demos.py").read_text()
     assert "register_failed_episode" in collector
+
+
+def test_builder_bc_v7_guards_scale_and_explicit_checkpoint() -> None:
+    # Regressoes da BC v6: (1) build BC sem flags treinou 64x500 em
+    # vez dos 256x1500 do protocolo; (2) playback/benchmark com
+    # '--checkpoint latest' exigem manifesto que o runner direto nao
+    # escreve — a v7 usa o checkpoint explicito do glob da celula.
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+    assert "--bc-warmstart exige a escala explicita do" in builder
+    assert "'--checkpoint', str(checkpoints[-1])," in builder
+    train_bc = (ROOT / "scripts/train_ppo_bc.py").read_text()
+    assert 'Path("bc-warmstart.json").write_text(' in train_bc
