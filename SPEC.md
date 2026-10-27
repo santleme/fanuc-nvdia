@@ -600,3 +600,33 @@ seguinte — progresso real, hipóteses ainda não testadas.
 Suíte 29/29 com regressões dos três bugs. Relançamento: v68 como
 v70 do kernel principal (256×1500, OvPhysX) e spike v3
 (`--physics newton_mjwarp`, 64×500), portões inalterados.
+
+### Veredito da v70 — MATA (27/10/2026)
+
+Kernel `pascalcoimbra/fanuc-conveyor-pick-place` v70 COMPLETO
+(todos os comandos exit 0; treino 1353,6 s para 1500 it × 256 envs;
+corrida total ~50 min). Primeira corrida do protocolo v68 a chegar
+ao benchmark:
+
+- probe finito ✅; baseline físico ✅ (`success: True`,
+  `scripted_grasp_sensor_passed: True`, esteira 0,069 m/s, picos
+  957/768 N) — o portão sem currículo validou as condições
+  históricas;
+- treino 1500/1500 iterações, playback ✅, benchmark ✅:
+  **success_rate = 0.0** (idêntico à v67);
+- termos do treino: `reach` oscilando 0,25–0,42 (a política aprende
+  a pairar no ponto de grasp), mas **`grasp_contact` = 0,0 em TODAS
+  as janelas logadas — inclusive na fase 1 estática**; `lift`,
+  `grasp`, `place` e `release` zerados o treino inteiro;
+  `Metrics/success_rate` 0,0000. Terminações: object_lost ~45,8%,
+  time_out ~54,2%, success 0%.
+
+Classificação pelos portões pré-registrados: **MATA** — grasp ≈ 0
+mesmo na fase estática, com 9,2 M amostras. A conjunção do
+`object_held` (garra fechada ∧ contato bilateral ∧ perto do tool)
+não foi descoberta pelo PPO puro nem com alvo parado, reward em
+estágios e currículo. Consequência do protocolo: **parar de gastar
+GPU em PPO puro; o BC warm-start (issue #3) vira o experimento
+principal.** A branch `frente/bc-warmstart-prep` está pronta
+(coletor do professor, portão de demos ≥ 0,80, suíte 33/33); o
+merge é a decisão que destrava o lançamento.
