@@ -846,3 +846,33 @@ teste de completude (todo módulo de `src/fanuc_cell/` em disco tem
 que estar no zip) + pré-voo novo: rodar o pytest **sobre a árvore
 extraída do zip embutido**, reproduzindo o estágio local do kernel
 (17/17). Suíte 48/48. **Protocolo BC v6**: idêntico ao v5.
+
+### BC v6: a cadeia inteira rodou — mas fora do protocolo e sem benchmark (27/10/2026)
+
+Por estágio: testes locais ✅ (manifesto corrigido), probe ✅,
+baseline ✅, coleta 200/200 ✅ (professor **0,865 / grasp 0,92**,
+portão aprovado), BC ✅ (loss 0,01063 → 0,000157), **PPO warm-start
+TREINOU até o fim (exit 0)** — primeira vez que a cadeia completa
+executa. Depois: **playback morreu** em
+`--checkpoint latest` (`ValueError: No compatible manifested run`):
+o entrypoint unificado de play do Isaac Lab 3.0 resolve o checkpoint
+por um manifesto que só o `isaaclab train` oficial escreve; o nosso
+runner direto não escreve. Benchmark nunca rodou.
+
+Duas ressalvas que invalidam a v6 como experimento do protocolo:
+1. **Escala errada**: o comando de treino saiu com
+   `--num_envs 64 --max_iterations 500` (defaults do builder) em vez
+   dos 256×1500 pré-registrados — as builds BC não passaram as flags
+   `--train-num-envs/--train-max-iterations`. Amostras: 0,77 M, não
+   9,2 M.
+2. **Marcador não verificável**: `BC_WARMSTART_APPLIED` é impresso
+   no início do stdout do treino, mas o runtime-report guarda só a
+   cauda de 12k — o marcador ficou fora do registro (a injeção em si
+   não levantou erro: o treino só começa depois dela). Nas métricas
+   finais do treino (it. 499): success 0,0 e grasp 0,0 — sob escala
+   reduzida, inconclusivo sobre o warm-start.
+
+**Protocolo BC v7** (correções): build com 256×1500 explícitos;
+playback e benchmark com o caminho EXPLÍCITO do checkpoint (glob que
+o notebook já faz), sem `--checkpoint latest`; marcador do warm-start
+também gravado em arquivo JSON nas saídas. Todo o resto idêntico.
