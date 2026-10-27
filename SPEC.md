@@ -830,3 +830,19 @@ antigo), restrita ao `mlp` quando ele existe.
 **Protocolo BC v5**: idêntico ao v4 (mesma coleta, portão, BC, PPO
 256×1500, benchmark; vereditos contra S68 = 0,0 inalterados), só com
 o script de treino corrigido.
+
+### BC v5: morta no manifesto do builder — correção e protocolo v6 (27/10/2026)
+
+A v5 morreu em ~5 min, **antes de qualquer física**: o PR #7 (logger
+Rerun, issue #6) adicionou `src/fanuc_cell/rerun_log.py` e o
+`__init__` passou a importá-lo, mas o manifesto explícito de arquivos
+do `bundled_project()` no builder não acompanhou — o zip do kernel
+ficou sem o módulo e o estágio de testes locais abortou com
+`ModuleNotFoundError: fanuc_cell.rerun_log`. Lição registrada: arquivo
+novo em `src/fanuc_cell/` exige entrada no manifesto do builder.
+
+Correção: `rerun_log.py` e `tests/test_rerun_log.py` no manifesto +
+teste de completude (todo módulo de `src/fanuc_cell/` em disco tem
+que estar no zip) + pré-voo novo: rodar o pytest **sobre a árvore
+extraída do zip embutido**, reproduzindo o estágio local do kernel
+(17/17). Suíte 48/48. **Protocolo BC v6**: idêntico ao v5.

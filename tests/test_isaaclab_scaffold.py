@@ -294,3 +294,26 @@ def test_bc_train_script_handles_deprecated_rsl_rl_cfg() -> None:
     assert "def _actor_linears" in train_bc
     assert 'getattr(alg, "actor", None)' in train_bc
     assert "BC_WARMSTART_APPLIED" in train_bc
+
+
+def test_bundled_project_zip_contains_every_fanuc_cell_module() -> None:
+    # Regressao da BC v5: o PR #7 adicionou src/fanuc_cell/rerun_log.py
+    # e o __init__ passou a importa-lo, mas o manifesto do builder nao
+    # acompanhou — o kernel morreu no estagio de testes locais com
+    # ModuleNotFoundError antes de qualquer fisica.
+    import base64
+    import importlib.util
+    import io
+    import zipfile
+
+    builder_path = ROOT / "scripts/build_kaggle_notebook.py"
+    spec = importlib.util.spec_from_file_location("builder", builder_path)
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    archive = zipfile.ZipFile(io.BytesIO(base64.b64decode(builder.bundled_project())))
+    names = set(archive.namelist())
+    on_disk = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "src/fanuc_cell").glob("*.py")
+    }
+    assert on_disk <= names, f"modulos fora do zip do kernel: {on_disk - names}"
