@@ -1,0 +1,29 @@
+{
+  "model": "FANUC M-10iD/12-inspired proxy (approximate geometry)",
+  "mode": "kinematic_reference_no_contact_dynamics",
+  "duration_seconds": 5.499999999999999,
+  "waypoint_count": 8,
+  "grasp_intercept_error_m": 5.772555167715687e-05,
+  "final_part_position_m": [
+    0.8,
+    -0.58,
+    0.28
+  ],
+  "target_place_position_m": [
+    0.8,
+    -0.58,
+    0.28
+  ],
+  "final_joint_positions_rad": [
+    -0.7854078207942832,
+    1.3514917256677992,
+    -1.6270003355059275,
+    1.305919349548667,
+    0.8222036148346059,
+    -1.19119274419741
+  ],
+  "gripper_closed_at_end": false,
+  "final_phase": "retreat",
+  "success": true,
+  "video": "/home/lucas_coimbra/industrial/outputs/fanuc-cell-demo.mp4"
+}

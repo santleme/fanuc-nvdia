@@ -1,0 +1,18 @@
+{
+  "obstacles": {
+    "conveyor_belt": {"center": [0.985, 0.0, 0.055], "half_size": [0.265, 0.42, 0.055]},
+    "place_pedestal": {"center": [0.80, -0.58, 0.22], "half_size": [0.18, 0.16, 0.02]}
+  },
+  "robot": {
+    "capsule_radii": {
+      "shoulder_column": 0.085,
+      "upper_arm": 0.075,
+      "forearm": 0.064,
+      "wrist_1": 0.052,
+      "wrist_2": 0.044
+    },
+    "wrist_cylinder": [0.052, 0.065],
+    "tool_half_size": [0.055, 0.075, 0.045],
+    "finger_half_size": [0.055, 0.009, 0.025]
+  }
+}

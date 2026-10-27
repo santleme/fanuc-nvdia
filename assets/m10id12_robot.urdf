@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot name="m10id12_robot">
+  <material name="fanuc_yellow"><color rgba="0.96 0.68 0.08 1"/></material>
+  <material name="wrist_yellow"><color rgba="0.94 0.75 0.19 1"/></material>
+  <material name="dark"><color rgba="0.20 0.24 0.29 1"/></material>
+  <material name="metal"><color rgba="0.72 0.78 0.82 1"/></material>
+  <link name="base_link">
+    <inertial><origin xyz="0 0 0.22"/><mass value="20"/><inertia ixx="0.2" ixy="0" ixz="0" iyy="0.2" iyz="0" izz="0.2"/></inertial>
+    <visual><origin xyz="0 0 0.22"/><geometry><cylinder radius="0.16" length="0.44"/></geometry><material name="dark"/></visual>
+    <collision><origin xyz="0 0 0.22"/><geometry><cylinder radius="0.16" length="0.44"/></geometry></collision>
+  </link>
+  <link name="link_1">
+    <inertial><origin xyz="0 0 0.075"/><mass value="6"/><inertia ixx="0.05" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.05"/></inertial>
+    <visual><origin xyz="0 0 0.075"/><geometry><cylinder radius="0.085" length="0.15"/></geometry><material name="fanuc_yellow"/></visual>
+    <collision><origin xyz="0 0 0.075"/><geometry><cylinder radius="0.085" length="0.15"/></geometry></collision>
+  </link>
+  <joint name="J1" type="revolute"><parent link="base_link"/><child link="link_1"/><origin xyz="0 0 0.45"/><axis xyz="0 0 1"/><limit lower="-2.96706" upper="2.96706" effort="450" velocity="2.5"/><dynamics damping="8"/></joint>
+  <link name="link_2">
+    <inertial><origin xyz="0.16 0 0"/><mass value="10"/><inertia ixx="0.08" ixy="0" ixz="0" iyy="0.08" iyz="0" izz="0.08"/></inertial>
+    <visual><origin xyz="0.16 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.075" length="0.32"/></geometry><material name="fanuc_yellow"/></visual>
+    <collision><origin xyz="0.16 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.075" length="0.32"/></geometry></collision>
+  </link>
+  <joint name="J2" type="revolute"><parent link="link_1"/><child link="link_2"/><origin xyz="0 0 0.15"/><axis xyz="0 1 0"/><limit lower="-2.05076" upper="2.05076" effort="450" velocity="2.5"/><dynamics damping="8"/></joint>
+  <link name="link_3">
+    <inertial><origin xyz="0.235 0 0"/><mass value="8"/><inertia ixx="0.08" ixy="0" ixz="0" iyy="0.08" iyz="0" izz="0.08"/></inertial>
+    <visual><origin xyz="0.235 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.064" length="0.47"/></geometry><material name="fanuc_yellow"/></visual>
+    <collision><origin xyz="0.235 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.064" length="0.47"/></geometry></collision>
+  </link>
+  <joint name="J3" type="revolute"><parent link="link_2"/><child link="link_3"/><origin xyz="0.32 0 0"/><axis xyz="0 1 0"/><limit lower="-3.97062" upper="3.97062" effort="300" velocity="3.0"/><dynamics damping="8"/></joint>
+  <link name="link_4">
+    <inertial><origin xyz="0.155 0 0"/><mass value="5"/><inertia ixx="0.04" ixy="0" ixz="0" iyy="0.04" iyz="0" izz="0.04"/></inertial>
+    <visual><origin xyz="0.155 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.052" length="0.31"/></geometry><material name="wrist_yellow"/></visual>
+    <collision><origin xyz="0.155 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.052" length="0.31"/></geometry></collision>
+  </link>
+  <joint name="J4" type="revolute"><parent link="link_3"/><child link="link_4"/><origin xyz="0.47 0 0"/><axis xyz="1 0 0"/><limit lower="-3.31613" upper="3.31613" effort="120" velocity="4.0"/><dynamics damping="8"/></joint>
+  <link name="link_5">
+    <inertial><origin xyz="0.04 0 0"/><mass value="3"/><inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/></inertial>
+    <visual><origin xyz="0.04 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.044" length="0.08"/></geometry><material name="wrist_yellow"/></visual>
+    <collision><origin xyz="0.04 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.044" length="0.08"/></geometry></collision>
+  </link>
+  <joint name="J5" type="revolute"><parent link="link_4"/><child link="link_5"/><origin xyz="0.31 0 0"/><axis xyz="0 1 0"/><limit lower="-3.14159" upper="3.14159" effort="90" velocity="4.0"/><dynamics damping="8"/></joint>
+  <link name="link_6">
+    <inertial><origin xyz="0.04 0 0"/><mass value="2"/><inertia ixx="0.015" ixy="0" ixz="0" iyy="0.015" iyz="0" izz="0.015"/></inertial>
+    <visual><origin xyz="0.04 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.052" length="0.13"/></geometry><material name="wrist_yellow"/></visual>
+    <collision><origin xyz="0.04 0 0" rpy="0 1.5707963 0"/><geometry><cylinder radius="0.052" length="0.13"/></geometry></collision>
+  </link>
+  <joint name="J6" type="revolute"><parent link="link_5"/><child link="link_6"/><origin xyz="0.08 0 0"/><axis xyz="1 0 0"/><limit lower="-7.85398" upper="7.85398" effort="50" velocity="6.0"/><dynamics damping="8"/></joint>
+  <link name="tool0">
+    <inertial><mass value="1"/><inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/></inertial>
+    <visual><geometry><box size="0.11 0.15 0.09"/></geometry><material name="dark"/></visual>
+    <collision><geometry><box size="0.11 0.15 0.09"/></geometry></collision>
+  </link>
+  <joint name="tool_mount_fixed" type="fixed"><parent link="link_6"/><child link="tool0"/><origin xyz="0.10 0 0"/></joint>
+  <link name="left_finger">
+    <inertial><origin xyz="0.055 0 0"/><mass value="0.2"/><inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/></inertial>
+    <visual><origin xyz="0.055 0 0"/><geometry><box size="0.11 0.018 0.05"/></geometry><material name="metal"/></visual>
+    <collision><origin xyz="0.055 0 0"/><geometry><box size="0.11 0.018 0.05"/></geometry></collision>
+  </link>
+  <joint name="gripper_left" type="prismatic"><parent link="tool0"/><child link="left_finger"/><origin xyz="0 0.055 0"/><axis xyz="0 -1 0"/><limit lower="0" upper="0.025" effort="40" velocity="0.1"/><dynamics damping="2"/></joint>
+  <link name="right_finger">
+    <inertial><origin xyz="0.055 0 0"/><mass value="0.2"/><inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/></inertial>
+    <visual><origin xyz="0.055 0 0"/><geometry><box size="0.11 0.018 0.05"/></geometry><material name="metal"/></visual>
+    <collision><origin xyz="0.055 0 0"/><geometry><box size="0.11 0.018 0.05"/></geometry></collision>
+  </link>
+  <joint name="gripper_right" type="prismatic"><parent link="tool0"/><child link="right_finger"/><origin xyz="0 -0.055 0"/><axis xyz="0 1 0"/><limit lower="0" upper="0.025" effort="40" velocity="0.1"/><dynamics damping="2"/></joint>
+</robot>
