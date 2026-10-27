@@ -803,3 +803,30 @@ Veredito contra S68 = 0,0: PROVA ≥ 0,30 / PARCIAL > 0 / MATA ≤ 0.
 Ressalva registrada: v4 roda sob a regra de captura nova — o portão
 do professor é comparável dentro da mesma versão do env, e um
 eventual PROVA deve ser lido junto desta mudança de tarefa.
+
+### BC v4: portão aprovado, PPO morreu na config — correção e protocolo v5 (27/10/2026)
+
+Veredito da v4 por estágio: probe ✅, baseline ✅, coleta 200/200
+(ik_failed 0), **professor success 0,865 / grasp 0,92 — portão ≥ 0,80
+APROVADO** (a correção captura+dois tempos funcionou; v3 era 0,515);
+BC ✅ (300 épocas, loss 0,01063 → 0,000157). O PPO **nunca começou**:
+`train_ppo_bc.py` construía o runner com `agent_cfg.to_dict()` cru e
+o rsl-rl ≥ 4 (Isaac Lab v3.0.0 pede rsl-rl-lib ≥ 5.0.1) morreu com
+`KeyError: 'class_name'` em `resolve_class(cfg["actor"])`. Sem
+marcador, sem benchmark: **experimento inválido no estágio PPO**,
+hipótese BC aberta com professor aprovado.
+
+Causa: o treino oficial (`isaaclab train`) chama
+`handle_deprecated_rsl_rl_cfg(agent_cfg, version("rsl-rl-lib"))`
+antes do runner — é ele que converte a cfg antiga (`policy`) em
+`actor`/`critic` com `class_name`. O script BC pulava esse passo.
+
+Correção (suíte 43/43): `train_ppo_bc.py` agora (1) aplica
+`handle_deprecated_rsl_rl_cfg` com a versão instalada, igual ao
+treino oficial; (2) a injeção BC resolve os Lineares do ator nas duas
+APIs (`alg.actor.mlp` no rsl-rl novo; `alg.actor_critic.actor` no
+antigo), restrita ao `mlp` quando ele existe.
+
+**Protocolo BC v5**: idêntico ao v4 (mesma coleta, portão, BC, PPO
+256×1500, benchmark; vereditos contra S68 = 0,0 inalterados), só com
+o script de treino corrigido.

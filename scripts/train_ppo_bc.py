@@ -45,13 +45,31 @@ from fanuc_cell_lab.tasks.conveyor_pick_place.config.m10id12.agents.rsl_rl_ppo_c
 import fanuc_cell_lab.tasks  # noqa: F401
 
 
+def _actor_linears(alg) -> list:
+    """Lineares do ator, na ordem, nas APIs nova e antiga do rsl_rl.
+
+    rsl-rl >= 4: o PPO guarda ``alg.actor`` (MLPModel, pesos em
+    ``actor.mlp``). rsl-rl antigo: ``alg.actor_critic.actor`` (Sequential).
+    Restringir ao ``mlp`` quando ele existe evita capturar Lineares de
+    outros submodulos (distribuicao, normalizador).
+    """
+    actor = getattr(alg, "actor", None)
+    if actor is None:
+        actor_critic = getattr(alg, "actor_critic", None)
+        if actor_critic is None:
+            raise RuntimeError(
+                "BC warm-start: runner.alg sem 'actor' nem 'actor_critic' "
+                "— API do rsl_rl nao reconhecida.")
+        actor = getattr(actor_critic, "actor", actor_critic)
+    root = getattr(actor, "mlp", None) or actor
+    return [m for _, m in root.named_modules()
+            if isinstance(m, torch.nn.Linear)]
+
+
 def inject_bc_weights(runner, weights_path: Path) -> dict:
     """Copia os pesos BC para as camadas lineares do ator, em ordem."""
     mlp, meta = ActorMLP.load_npz(weights_path)
-    actor_critic = runner.alg.actor_critic
-    actor_module = getattr(actor_critic, "actor", actor_critic)
-    linears = [m for _, m in actor_module.named_modules()
-               if isinstance(m, torch.nn.Linear)]
+    linears = _actor_linears(runner.alg)
     if len(linears) != len(mlp.weights):
         raise RuntimeError(
             f"BC warm-start: ator tem {len(linears)} camadas lineares, "
@@ -93,6 +111,16 @@ def main() -> int:
                     env, clip_actions=agent_cfg.clip_actions)
             except TypeError:
                 env = RslRlVecEnvWrapper(env)
+            # Mesmo passo do treino oficial (isaaclab train): sem ele, o
+            # to_dict() cru mantem a cfg no formato antigo (policy) e o
+            # rsl-rl >= 4 morre com KeyError 'class_name' em
+            # resolve_class(cfg["actor"]) — foi o que matou a BC v4
+            # depois do portao das demos aprovado.
+            import importlib.metadata as metadata
+            from isaaclab_rl.rsl_rl.utils import \
+                handle_deprecated_rsl_rl_cfg
+            agent_cfg = handle_deprecated_rsl_rl_cfg(
+                agent_cfg, metadata.version("rsl-rl-lib"))
             from rsl_rl.runners import OnPolicyRunner
             log_dir = Path("logs") / "rsl_rl" / agent_cfg.experiment_name \
                 / (datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

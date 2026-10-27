@@ -280,3 +280,17 @@ def test_scripts_take_backend_from_env_and_baseline_skips_curriculum() -> None:
     assert "cfg.curriculum = None" in demo
     assert "baseline_env['FANUC_CELL_PHYSICS'] = 'ovphysx'" in builder
     assert "'FANUC_CELL_PHYSICS'] = '{args.physics}'" in builder
+
+
+def test_bc_train_script_handles_deprecated_rsl_rl_cfg() -> None:
+    # Regressao da BC v4: o treino oficial chama
+    # handle_deprecated_rsl_rl_cfg antes do OnPolicyRunner; sem isso o
+    # rsl-rl >= 4 morre com KeyError 'class_name' em cfg["actor"].
+    train_bc = (ROOT / "scripts/train_ppo_bc.py").read_text()
+
+    assert "handle_deprecated_rsl_rl_cfg(" in train_bc
+    assert 'metadata.version("rsl-rl-lib")' in train_bc
+    # Injecao compativel com a API nova (alg.actor/mlp) e a antiga.
+    assert "def _actor_linears" in train_bc
+    assert 'getattr(alg, "actor", None)' in train_bc
+    assert "BC_WARMSTART_APPLIED" in train_bc
