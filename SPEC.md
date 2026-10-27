@@ -688,3 +688,48 @@ mecanismo), perda do BC, taxa de contato sustentada no fine-tune
 
 Orçamento estimado: coleta ~15–35 min (sequencial) + BC ~1 min +
 treino ~1h30–2h = kernel de ~2–2,5 h.
+
+### Investigação da divergência IK — coleta BC v1 (27/10/2026)
+
+A v1 do kernel BC morreu na coleta, episódio 76/200 (seed 1075),
+com `Pose IK did not converge` (resíduo 0,0068 m / 0,0080 rad) no
+re-solve contra a peça medida. Investigação pedida pelo fundador
+antes de qualquer relançamento:
+
+- **Não há divergência de código entre baseline e coletor**: os dois
+  drivers têm o drive do professor linha a linha igual (mesma
+  CellConfig, mesmo re-solve com seed nas juntas de referência,
+  mesma âncora de captura). A diferença é amostragem: o baseline
+  roda UMA condição (seed 23: start 0,832, vel. 0,069, pick 1,039 —
+  aprovada desde a v51), o coletor varre 200 condições sorteadas
+  (start ∈ [0,80; 0,90], vel. ∈ [0,05; 0,10]).
+- **Reprodução local (núcleo puro)**: com start 0,80 / vel. 0,05
+  (pick 0,95), o primeiro re-solve do approach (alvo = peça medida
+  − offset + clearance = (0,795, 0, 0,37), seed = juntas do waypoint
+  approach) trava com resíduo estacionário 0,0507 m — idêntico em
+  240 ou 5000 iterações e insensível ao damping: é **mínimo local do
+  DLS dependente da seed**. Da seed zero (de onde a cadeia de
+  construção do episódio parte), o mesmo alvo converge a 0,07 mm —
+  o alvo é alcançável; não é fronteira de workspace (na altura do
+  grasp, x até 1,105 converge da seed de referência).
+- **Causa raiz**: o re-solve de tracking semeado nas juntas de
+  referência é frágil numa região do approach (alvo atrás do
+  waypoint de referência por até `vel × 1,2 s`, com clearance); o
+  baseline nunca expôs a armadilha por rodar uma única seed. O
+  resíduo menor da corrida real (6,8 mm) é a mesma bacia sob alvos
+  perturbados pela física (a condição exata do episódio 76 depende
+  do RNG do Isaac e não é reproduzível localmente).
+
+**Correção (branch `fix/ik-coletor-bc`, suíte 41/41)**:
+1. `inverse_kinematics_pose` ganha `fallback_seeds` (default vazio =
+   comportamento bit-idêntico): em falha da seed primária, tenta as
+   reservas em ordem e levanta o erro original se todas falharem.
+2. Baseline e coletor passam `fallback_seeds=(zeros,)` no re-solve.
+3. Coletor resiliente e honesto: episódio que abortar mesmo com
+   fallback é descartado (`DemoRecorder.register_failed_episode` —
+   pares parciais fora do BC, episódio dentro do denominador do
+   portão ≥ 0,80) e a coleta segue; o resumo reporta
+   `ik_failed_episodes`.
+
+Relançamento do kernel BC a partir desta branch (após merge) é a
+decisão seguinte do fundador.

@@ -117,7 +117,8 @@ def run_episode(env, base_env, seed: int, recorder: DemoRecorder) -> None:
             if phase in {"approach", "lift"}:
                 target_tcp[2] += reference_config.clearance
             command_joints = inverse_kinematics_pose(
-                reference_arm, target_tcp, np.eye(3), seed=command_joints)
+                reference_arm, target_tcp, np.eye(3), seed=command_joints,
+                fallback_seeds=(np.zeros(6),))
         actions[:, :6] = torch.as_tensor(
             command_joints, device=device).view(1, 6) / 3.2
         actions[:, 6:] = -0.04 if gripper_closed else -1.0
@@ -171,8 +172,20 @@ def main() -> int:
         env = gym.make(task_id, cfg=cfg)
         try:
             base_env = env.unwrapped
+            ik_failures = 0
             for ep in range(args.episodes):
-                run_episode(env, base_env, args.seed + ep, recorder)
+                try:
+                    run_episode(env, base_env, args.seed + ep, recorder)
+                except ValueError:
+                    # IK sem convergência mesmo com fallback (v1 do
+                    # kernel BC morreu assim no episódio 76/200): o
+                    # episódio conta como falha do professor no portão
+                    # e a coleta segue — sem pares parciais no BC.
+                    recorder.register_failed_episode()
+                    ik_failures += 1
+                    print(f"[collect] episodio {ep + 1}/{args.episodes} "
+                          "abortado (IK); registrado como falha",
+                          flush=True)
                 if (ep + 1) % 25 == 0 or ep == args.episodes - 1:
                     print(f"[collect] episodio {ep + 1}/{args.episodes}",
                           flush=True)
@@ -182,6 +195,7 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     demos.save_npz(args.output)
     summary = demos.summary()
+    summary["ik_failed_episodes"] = ik_failures
     summary["output"] = str(args.output)
     print(json.dumps(summary, indent=2))
     return 0

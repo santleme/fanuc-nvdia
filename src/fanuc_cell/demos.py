@@ -130,6 +130,40 @@ class DemoRecorder:
         self._act.append(np.asarray(action, dtype=np.float32).ravel())
         self._ep_index.append(self._current)
 
+    def discard_current_episode(self) -> None:
+        """Descarta os pares do episódio aberto e o registra como falha.
+
+        Usado quando o rollout do professor aborta no meio (ex.: IK sem
+        convergência): os pares parciais NÃO entram no DemoSet (o BC
+        treina em todos os pares gravados), mas o episódio conta no
+        denominador do success_rate — o portão de qualidade mede o
+        professor inteiro, incluindo as falhas.
+        """
+        if self._current is None:
+            raise RuntimeError("discard sem episódio aberto")
+        idx = self._current
+        keep = [i for i, ep in enumerate(self._ep_index) if ep != idx]
+        self._obs = [self._obs[i] for i in keep]
+        self._act = [self._act[i] for i in keep]
+        self._ep_index = [self._ep_index[i] for i in keep]
+        self._ep_success.append(False)
+        self._ep_grasped.append(False)
+        self._current = None
+
+    def register_failed_episode(self) -> None:
+        """Registra um episódio abortado como falha do professor.
+
+        Com episódio aberto, descarta os pares parciais; sem episódio
+        aberto (falha antes do rollout), abre e fecha um episódio
+        vazio falho. Nos dois casos o episódio entra no denominador
+        do success_rate, sem pares para o BC.
+        """
+        if self._current is not None:
+            self.discard_current_episode()
+        else:
+            self.begin_episode()
+            self.end_episode(success=False, grasped=False)
+
     def end_episode(self, *, success: bool, grasped: bool) -> None:
         if self._current is None:
             raise RuntimeError("end_episode sem episódio aberto")

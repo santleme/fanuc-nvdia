@@ -134,3 +134,70 @@ def test_collect_demos_disables_training_curriculum() -> None:
     precisam das condicoes historicas da esteira, como o baseline."""
     collector = (ROOT / "scripts/collect_demos.py").read_text()
     assert "cfg.curriculum = None" in collector
+
+
+def test_pose_ik_fallback_seed_escapes_local_minimum() -> None:
+    """Armadilha real da coleta BC v1 (episódio 76/200): o DLS de pose
+    trava a partir das juntas de referência do approach (resíduo
+    estacionário em 240 ou 5000 iterações), mas o MESMO alvo é
+    alcançável da seed zero. O fallback só age onde hoje levanta."""
+    from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
+    from fanuc_cell.task import CellConfig, make_demo_episode
+
+    cfg = CellConfig(
+        belt_start_x=0.80, belt_speed=0.05, pick_x=0.95,
+        approach_duration=1.8, pick_duration=1.2,
+        gripper_close_duration=0.5, transfer_duration=2.8,
+        place_duration=0.8, release_duration=0.6,
+    )
+    episode = make_demo_episode(SerialArm(), cfg)
+    seed = episode.sample(1.8)[0]  # juntas do waypoint approach
+    target = np.array([0.795, 0.0, 0.37])  # peça medida no início do approach
+    with pytest.raises(ValueError):
+        inverse_kinematics_pose(SerialArm(), target, np.eye(3), seed=seed)
+    solved = inverse_kinematics_pose(
+        SerialArm(), target, np.eye(3), seed=seed,
+        fallback_seeds=(np.zeros(6),))
+    direct = inverse_kinematics_pose(
+        SerialArm(), target, np.eye(3), seed=np.zeros(6))
+    assert np.allclose(solved, direct)
+    pos, _ = SerialArm().forward_pose(solved)
+    assert np.linalg.norm(pos - target) <= 0.001
+
+
+def test_pose_ik_fallback_does_not_change_converged_solutions() -> None:
+    """Com a seed primária convergindo, o fallback nunca é consultado:
+    o resultado é bit-idêntico ao solve de seed única."""
+    from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
+
+    target = np.array([0.90, 0.0, 0.37])
+    plain = inverse_kinematics_pose(
+        SerialArm(), target, np.eye(3), seed=np.zeros(6))
+    with_fallback = inverse_kinematics_pose(
+        SerialArm(), target, np.eye(3), seed=np.zeros(6),
+        fallback_seeds=(np.ones(6) * 0.3,))
+    assert np.array_equal(plain, with_fallback)
+
+
+def test_recorder_failed_episode_counts_without_pairs() -> None:
+    """Episódio abortado: fora dos pares do BC, dentro do denominador
+    do portão — success_rate mede o professor inteiro."""
+    rec = DemoRecorder()
+    rec.begin_episode()
+    for _ in range(3):
+        rec.record(np.zeros(4), np.zeros(2))
+    rec.end_episode(success=True, grasped=True)
+    rec.begin_episode()
+    rec.record(np.ones(4), np.ones(2))
+    rec.register_failed_episode()
+    demos = rec.to_demoset()
+    assert demos.num_episodes == 2
+    assert demos.success_rate == 0.5
+    assert len(demos.observations) == 3  # só os pares do episódio bom
+
+
+def test_drivers_use_ik_fallback() -> None:
+    for script in ("scripts/run_scripted_demo.py", "scripts/collect_demos.py"):
+        assert "fallback_seeds" in (ROOT / script).read_text()
+    collector = (ROOT / "scripts/collect_demos.py").read_text()
+    assert "register_failed_episode" in collector

@@ -126,6 +126,11 @@ def main() -> int:
                         target_tcp,
                         np.eye(3),
                         seed=command_joints,
+                        # O DLS tem mínimos locais dependentes da seed:
+                        # a partir das juntas de referência ele pode
+                        # travar a mm do alvo (alvo alcançável da seed
+                        # zero, de onde a cadeia do episódio parte).
+                        fallback_seeds=(np.zeros(6),),
                     )
                 actions[:, :6] = torch.as_tensor(command_joints, device=device).view(1, 6) / 3.2
                 # A 12 mm setpoint preloads the compliant 40 N position drives
