@@ -32,16 +32,20 @@ from ... import mdp
 class CellPhysicsCfg(PresetCfg):
     """Physics backends da célula: OvPhysX (linha principal) e Newton.
 
-    O preset ``newton`` (issue #2 — spike do backend MuJoCo-Warp) é
-    inerte enquanto o token for ``physics=ovphysx``: trocar o backend
-    é trocar o token nos comandos do notebook, sem tocar na tarefa.
+    O preset ``newton_mjwarp`` (issue #2 — spike do backend
+    MuJoCo-Warp) é inerte enquanto o token for ``physics=ovphysx``:
+    trocar o backend é trocar o token nos comandos do notebook, sem
+    tocar na tarefa. O nome é o canônico do launcher do Isaac Lab
+    3.0 — ``newton`` puro é rejeitado por ``launch_simulation``
+    (veredito do spike v2: esperados 'physx', 'isaacsim_physx',
+    'newton_mjwarp', 'newton_vbd' ou 'ovphysx').
     MJWarp é o solver do spike (contato macio da família MuJoCo);
     ``nconmax`` explícito porque o MJWarp descarta contatos em
     silêncio ao estourar o buffer pré-alocado.
     """
 
     ovphysx: OvPhysxCfg = OvPhysxCfg()
-    newton: NewtonCfg = NewtonCfg(
+    newton_mjwarp: NewtonCfg = NewtonCfg(
         solver_cfg=MJWarpSolverCfg(
             integrator="implicitfast",
             cone="pyramidal",

@@ -561,3 +561,42 @@ newton (physics=newton nos 4 comandos, extras de vídeo/importers
 preservados). Suíte 28/28. Relançamento: v68b com o mesmo protocolo
 da v68 (256×1500) e spike v2 com o mesmo protocolo do spike (64×500)
 — as hipóteses e os portões não mudam.
+
+### Vereditos v69 / spike v2 e correções (27/10/2026)
+
+Relançamentos pós-PR #5 (exports do mdp + builder sem extra
+inventado): os dois kernels avançaram um estágio e morreram no
+seguinte — progresso real, hipóteses ainda não testadas.
+
+- **v69** (`fanuc-conveyor-pick-place` v69): probe **verde** com o
+  MDP da v68 (`{"finite": true, "steps": 24, "num_envs": 64}`,
+  currículo ativo) — o bug de exportação morreu. O baseline morreu
+  ANTES de testar física, em `make_demo_episode`:
+  `ValueError: Pose IK did not converge: position residual 1.0006 m,
+  orientation residual 1.8201 rad`. Causa raiz reproduzida
+  localmente com o resíduo exato: o currículo da v68 já tinha
+  gravado a fase 1 no env do baseline (peça estática, velocidade
+  0, jitter 0 → pick em x=0,80), e o IK encadeado do professor
+  diverge nesse pick — nas condições históricas (pick ≈ 0,95–1,20)
+  ele converge. Correção: o baseline roda com `cfg.curriculum =
+  None` — ele é o portão físico histórico, não uma medição do
+  currículo. O probe segue com currículo (é a foto do treino).
+- **Spike v2** (`fanuc-newton-spike` v2): a conversão morreu em
+  `launch_simulation` com `ValueError: Invalid physics config:
+  'newton' (expected 'physx', 'isaacsim_physx', 'newton_mjwarp',
+  'newton_vbd', or 'ovphysx')` — o patch do conversor trocava o
+  backend para `newton`, nome que o launcher do Isaac Lab 3.0 não
+  aceita. Correção estrutural: o preset da tarefa foi renomeado
+  para o nome canônico **`newton_mjwarp`** (`CellPhysicsCfg`), e o
+  token do builder passa a ser `newton_mjwarp` em todos os usos
+  (preset `physics=`, conversor e scripts) — um nome só, válido em
+  todas as camadas.
+- **Scripts**: probe e baseline tinham `args.physics = "ovphysx"`
+  hardcoded — no spike eles mediriam o backend errado. Agora leem
+  `FANUC_CELL_PHYSICS` (o notebook define por experimento no
+  `baseline_env`; default `ovphysx`), e o relatório do baseline
+  registra o backend real.
+
+Suíte 29/29 com regressões dos três bugs. Relançamento: v68 como
+v70 do kernel principal (256×1500, OvPhysX) e spike v3
+(`--physics newton_mjwarp`, 64×500), portões inalterados.

@@ -75,7 +75,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--physics",
-        choices=("ovphysx", "newton"),
+        choices=("ovphysx", "newton_mjwarp"),
         default="ovphysx",
         help="Backend de física do Isaac Lab 3.0 (preset da tarefa). "
              "ovphysx = linha principal; newton = spike MuJoCo-Warp (issue #2).",
@@ -319,6 +319,7 @@ def main() -> None:
                 "        raise AssertionError('Converted USD is missing the tool0 rigid body: ' + str(runtime_report['usd_rigid_bodies']))\n"
                 "    baseline_env = os.environ.copy()\n"
                 "    baseline_env['PYTHONPATH'] = str(project_dir / 'src') + os.pathsep + baseline_env.get('PYTHONPATH', '')\n"
+                "    baseline_env['FANUC_CELL_PHYSICS'] = 'ovphysx'\n"
                 "    nan_probe = run(['uv', 'run', '--extra', 'ovphysx', 'python',\n"
                 "                    str(project_dir / 'scripts' / 'diagnose_training_nan.py'),\n"
                 "                    '--device', 'cuda:0', '--num-envs', '64', '--steps', '24', '--seed', '7'],\n"
@@ -469,6 +470,8 @@ def main() -> None:
             source = "".join(cell["source"])
             source = source.replace("physics=ovphysx",
                                     f"physics={args.physics}")
+            source = source.replace("'FANUC_CELL_PHYSICS'] = 'ovphysx'",
+                                    f"'FANUC_CELL_PHYSICS'] = '{args.physics}'")
             if args.physics != "ovphysx":
                 source = source.replace("'--extra', 'ovphysx', ", "")
             source = source.replace('\\1"ovphysx"',

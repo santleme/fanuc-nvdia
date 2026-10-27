@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from isaaclab.app import add_launcher_args, launch_simulation
@@ -15,8 +16,10 @@ add_launcher_args(parser)
 args = parser.parse_args()
 
 # The selected backend is kept explicit in the report and resolved by the
-# versioned Isaac Lab simulation launcher.
-args.physics = "ovphysx"
+# versioned Isaac Lab simulation launcher. The notebook sets
+# FANUC_CELL_PHYSICS per experiment (spike Newton, issue #2); the default
+# preserves the historical OvPhysX behavior.
+args.physics = os.environ.get("FANUC_CELL_PHYSICS", "ovphysx")
 args.visualizer = "none"
 
 import gymnasium as gym
@@ -33,6 +36,12 @@ import fanuc_cell_lab.tasks  # noqa: F401
 def main() -> int:
     task_id = "Fanuc-Conveyor-PickPlace-M10id12-v0"
     cfg = M10id12EnvCfg()
+    # O baseline é o portão físico do pipeline: valida contato/grasp nas
+    # condições históricas (esteira 0,05–0,10 m/s, jitter 0,10 — os
+    # fallbacks do reset_part). O currículo de treino NÃO se aplica
+    # aqui: na v69 a fase 1 (peça estática, pick em x=0,80) fez o IK do
+    # professor divergir e o portão matou a corrida sem testar física.
+    cfg.curriculum = None
     cfg.scene.num_envs = 1
     cfg.sim.device = args.device
     # Keep the terminal physical state available for reporting. Isaac Lab
@@ -177,7 +186,7 @@ def main() -> int:
             success = bool(object_at_goal(base_env)[0])
             report = {
                 "task_id": task_id,
-                "physics": "Isaac Lab OvPhysX",
+                "physics": "Isaac Lab " + args.physics,
                 "seed": args.seed,
                 "start_part_x_m": start_x,
                 "belt_speed_m_s": belt_speed,

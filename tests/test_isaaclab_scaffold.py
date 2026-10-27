@@ -211,7 +211,7 @@ def test_newton_preset_is_available_but_inert() -> None:
     env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
 
     assert "from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg" in env_cfg
-    assert "newton: NewtonCfg = NewtonCfg(" in env_cfg
+    assert "newton_mjwarp: NewtonCfg = NewtonCfg(" in env_cfg
     assert 'integrator="implicitfast"' in env_cfg
     assert "nconmax=512" in env_cfg
     assert "default: OvPhysxCfg = ovphysx" in env_cfg
@@ -222,7 +222,7 @@ def test_notebook_builder_parameterizes_experiment() -> None:
     builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
 
     assert '"--physics"' in builder
-    assert 'choices=("ovphysx", "newton")' in builder
+    assert 'choices=("ovphysx", "newton_mjwarp")' in builder
     assert '"--train-num-envs"' in builder and '"--train-max-iterations"' in builder
     assert '"--kernel-slug"' in builder
     assert "args.train_num_envs" in builder and "args.physics" in builder
@@ -259,3 +259,23 @@ def test_builder_newton_mode_drops_uv_extra() -> None:
 
     assert "source.replace(\"'--extra', 'ovphysx', \", \"\")" in builder
     assert "'--extra', '{args.physics}'" not in builder
+
+
+def test_scripts_take_backend_from_env_and_baseline_skips_curriculum() -> None:
+    """Vereditos v69/spike v2 (27/10/2026): (1) probe/baseline tinham
+    args.physics hardcoded em "ovphysx" — no spike eles testariam o
+    backend errado; agora leem FANUC_CELL_PHYSICS, que o notebook
+    define por experimento. (2) O baseline morreu na v69 sem testar
+    fisica: o curriculo da v68 poe a fase 1 estatica (pick em x=0,80)
+    e o IK do professor diverge nesse pick — reproduzido localmente
+    com o residuo exato do kernel (1,0006 m / 1,8201 rad). O baseline
+    e o portao fisico historico: roda SEM curriculo."""
+    demo = (ROOT / "scripts/run_scripted_demo.py").read_text()
+    probe = (ROOT / "scripts/diagnose_training_nan.py").read_text()
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+
+    assert 'os.environ.get("FANUC_CELL_PHYSICS", "ovphysx")' in demo
+    assert 'os.environ.get("FANUC_CELL_PHYSICS", "ovphysx")' in probe
+    assert "cfg.curriculum = None" in demo
+    assert "baseline_env['FANUC_CELL_PHYSICS'] = 'ovphysx'" in builder
+    assert "'FANUC_CELL_PHYSICS'] = '{args.physics}'" in builder

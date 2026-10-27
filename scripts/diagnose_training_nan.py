@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 
 from isaaclab.app import add_launcher_args, launch_simulation
 
@@ -13,7 +14,7 @@ parser.add_argument("--steps", type=int, default=24)
 parser.add_argument("--seed", type=int, default=7)
 add_launcher_args(parser)
 args = parser.parse_args()
-args.physics = "ovphysx"
+args.physics = os.environ.get("FANUC_CELL_PHYSICS", "ovphysx")
 args.visualizer = "none"
 
 import gymnasium as gym
