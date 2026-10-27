@@ -71,7 +71,14 @@ class CellSceneCfg(InteractiveSceneCfg):
     robot = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
         spawn=sim_utils.UsdFileCfg(
-            usd_path=str(FANUC_CELL_ASSETS_DIR / "m10id12_robot" / "m10id12_robot.usd")
+            usd_path=str(FANUC_CELL_ASSETS_DIR / "m10id12_robot" / "m10id12_robot.usd"),
+            # The USD is converted WITHOUT the importer's --fix-base joint and
+            # the root is fixed here instead. Clone-mode diagnosis (Kaggle
+            # kernel fanuc-diagnose-clone-modes v1, modes A-E): with the
+            # importer fixed joint, every body transform of the replicated
+            # clones (envs 1+) went NaN after the first physics step; with
+            # fix_root_link the clones stay finite and rewards are finite.
+            fix_root_link=True,
         ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.0),
@@ -230,10 +237,12 @@ class M10id12EnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         self.decimation = 2
         self.episode_length_s = 12.0
-        # USD physics cloning leaves tool0 transforms non-finite for envs 1+
-        # with this fixed-base articulation under OvPhysX. Spawn each scene
-        # instance independently; the PPO batch is small enough for this path.
-        self.scene.replicate_physics = False
+        # replicate_physics stays at the default (True): under OvPhysX the
+        # contact-sensor binding only resolves sensor bodies on the replicate
+        # path (replicate_physics=False omitted the finger bodies of envs 1+
+        # and the environment could not be created). The clone NaN was traced
+        # to the importer's --fix-base joint, not to replication; see the
+        # robot spawn above and the clone-mode diagnosis in SPEC.md.
         self.sim.dt = 0.01
         self.sim.render_interval = self.decimation
         self.sim.default_visualizer_cfg = VisualizerCfg(eye=(2.2, -2.5, 1.8), lookat=(0.8, -0.1, 0.3))

@@ -337,3 +337,84 @@ outputs, inspecionar o vídeo e guardar os comandos e resultados no projeto.
   na imagem Kaggle; esse componente só visualiza a cena e não é o solver físico.
 - **R3:** execuções Kaggle com erro podem demorar a atualizar o estado terminal;
   a CLI é a interface para envio, status, logs e recuperação de outputs.
+
+### Estado atual — diagnóstico de clone modes e v66 (26/10/2026)
+
+A v65 executou a correção da v64 pela primeira vez e falhou na criação do
+ambiente: com `replicate_physics=False`, o binding nativo de contato do
+OvPhysX omitiu os corpos `left_finger` dos envs 1–7 (só o env_0 vinculou) e
+baseline/PPO nunca rodaram. Para não trocar um chute por outro, o protocolo
+pré-registrado do kernel de diagnóstico `pascalcoimbra/fanuc-diagnose-clone-modes`
+v1 rodou cinco modos em processos separados (8 envs, 24 passos, seed 7;
+script `scripts/diagnose_clone_modes.py`, veredito impresso pelo próprio
+kernel):
+
+- **A** (replicate=True, filtrado, USD com `--fix-base`): criou e andou, mas
+  TODOS os corpos (base, elos, tool0, dedos) ficaram NaN nos envs 1–7 após os
+  passos; reward não-finito. O NaN não era só do tool0.
+- **B** (= v65): falhou na criação, binding de contato omitido nos envs 1–7.
+- **C** (replicate=False, sensores SEM filtro): mesmo erro de binding — o
+  filtro não é a causa.
+- **D** (replicate=True, filtrado, USD SEM `--fix-base` + `fix_root_link=True`
+  no spawn): **done, reward finito, nenhum corpo NaN** — configuração vencedora.
+- **E** (replicate=False + `make_uninstanceable=True`): mesmo erro de binding
+  — instancing não é a causa.
+
+Veredito: o veneno é a junta fixa de raiz do importador (`--fix-base`) sob
+replicação OvPhysX; e `replicate_physics=False` é inviável para sensores de
+contato neste stack 3.0.0. A v66 aplica o modo D: conversão sem `--fix-base`,
+`fix_root_link=True` no `UsdFileCfg` do robô e `replicate_physics` de volta ao
+padrão (True). O portão continua o mesmo: probe finito → baseline físico →
+PPO 500 iterações × 8 envs → playback → benchmark com success_rate.
+
+### Veredito da v66 e protocolo v67 (pré-registrado em 26/10/2026)
+
+A v66 (correção do modo D) rodou ~46 min e avançou mais que qualquer versão
+anterior: probe finito ✅, baseline físico aprovado (grasp) ✅ e **o treino
+PPO completou** (exit 0, checkpoints gerados) — o primeiro treino completo
+do projeto. Morreu no estágio seguinte: o CLI `isaaclab play` do Isaac Lab
+3.0 rejeita a flag legada `--headless` (`error: unrecognized arguments:
+--headless`), então playback/vídeo e benchmark nunca rodaram e não há
+success_rate ainda. Falha classificada como código/invocação, não de
+hipótese nem de infraestrutura. Agravante registrado: os ramos de falha de
+playback/avaliação do notebook não chamavam `save_report()`, e o
+runtime-report detalhado se perdeu; corrigido na v67.
+
+**Protocolo v67** (decisão do fundador em 26/10/2026: overhead + 64 envs):
+- Treino e probe com **64 envs** (o padrão do env_cfg; a v66 forçava 8 no
+  comando), mesmas 500 iterações, 24 steps/env, 5 épocas, 4 minibatches e
+  seed 7: 768 mil amostras contra 96 mil da v66, com o mesmo número de
+  atualizações do otimizador (10 mil). Hipótese: a T4, ociosa com 8 envs,
+  entrega as 8× amostras em tempo total comparável ou menor, e a política
+  aprende mais por atualização.
+- Playback sem `--headless`; `save_report()` em todos os ramos de falha.
+- Overhead: a fusão probe+baseline num boot só foi avaliada e adiada
+  (economia <1 min contra risco de reentrada do launch_simulation não
+  provada); o cache da instalação do Isaac Lab via dataset fica como
+  trabalho futuro desenhado (venv de vários GB gerada por kernel construtor,
+  com fallback para install completo) — payback estimado só após ~6 corridas.
+- Critério de veredito: todos os estágios verdes, success_rate do benchmark
+  oficial reportado, e tempo total comparado aos ~46 min da v66.
+
+### Veredito da v67 (26/10/2026)
+
+Pipeline inteira verde pela primeira vez: probe (64 envs) exit 0, baseline
+success=True com grasp sensor aprovado, PPO 500×64 exit 0 em **421 s de
+treino** (0,76 s/iteração; corrida total ~15 min contra ~46 min da v66),
+playback exit 0 com vídeo gerado e benchmark oficial executado (800 steps
+× 16 envs). **success_rate oficial = 0.0** (medição `benchmark_play play
+success_rate` no summary; confere com o `Metrics/success_rate: 0.0000` do
+treino). Reward médio do benchmark 0,738 ± 0,231; no treino, término por
+`object_lost` em 100% dos episódios e reward concentrado em termos parciais
+(place 0,096; grasp/lift/release = 0). Ou seja: a infraestrutura está
+resolvida; o gargalo agora é aprendizado — a política perde a peça antes de
+completar grasp→lift→release. Próxima frente é desenho de
+reward/currículo/dificuldade, não encanamento.
+
+O notebook quebrou DEPOIS de todos os estágios, no parsing do JSON do
+benchmark: o summary é uma lista de fases com medições nomeadas, não um dict
+com `success_rate` — parsing corrigido (extrator tolerante a lista/dict) com
+teste de regressão; suíte 22/22. Artefatos (runtime-report, baseline,
+schema/summary do benchmark e o vídeo da política) recuperados por extração
+seletiva do `_output_.zip` de 16,5 GB via requisições range no diretório
+central ZIP64, salvos em `outputs-v67/` — sem baixar o zip inteiro.

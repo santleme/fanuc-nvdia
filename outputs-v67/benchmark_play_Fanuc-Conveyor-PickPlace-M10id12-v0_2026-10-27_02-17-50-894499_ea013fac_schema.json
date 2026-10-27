@@ -1,0 +1,180 @@
+{
+  "run": {
+    "run_id": "rsl_rl_ovphysx_Fanuc-Conveyor-PickPlace-M10id12-v0_20261027T021827_seed101",
+    "framework": "rsl_rl",
+    "config": {
+      "physics_backend": "ovphysx",
+      "rendering_backend": "none",
+      "presets": []
+    },
+    "task": "Fanuc-Conveyor-PickPlace-M10id12-v0",
+    "seed": 101,
+    "start_time_utc": "2026-10-27T02:17:50.890260+00:00",
+    "end_time_utc": "2026-10-27T02:18:27.794310+00:00",
+    "duration_s": 36.90405,
+    "status": "completed",
+    "num_envs": 16,
+    "max_iterations": null
+  },
+  "versions": {
+    "isaaclab": "28.0.0",
+    "isaacsim": null,
+    "kit": null,
+    "newton": "1.6.1",
+    "warp": "1.17.0",
+    "mjwarp": "3.12.0",
+    "torch": "2.11.0+cu130",
+    "rsl_rl": "5.5.1",
+    "rl_games": null,
+    "skrl": null,
+    "sb3": null,
+    "git_commit": "e3f7d9ff1f5d7f8280de3ece9000b7117f66bcf4",
+    "git_branch": "HEAD",
+    "git_dirty": true,
+    "numpy": "2.5.4",
+    "isaaclab_newton": "9.1.4",
+    "isaaclab_physx": "8.0.0",
+    "isaaclab_ov": "5.1.5",
+    "isaaclab_tasks": "25.2.0",
+    "isaaclab_rl": "1.5.1",
+    "ovrtx": null,
+    "ovphysx": "0.6.4.72118723",
+    "mujoco": "3.12.0",
+    "cuda_bindings": "13.4.4",
+    "usd_core": null,
+    "usd_exchange": "3.0.1",
+    "isaaclab_release": "3.0.0"
+  },
+  "hardware": {
+    "hostname": "e9b81acfd056",
+    "gpu_devices": [
+      {
+        "name": "Tesla T4",
+        "mem_gb": 14.56,
+        "compute_cap": "7.5"
+      },
+      {
+        "name": "Tesla T4",
+        "mem_gb": 14.56,
+        "compute_cap": "7.5"
+      }
+    ],
+    "cpu_name": "Intel(R) Xeon(R) CPU @ 2.00GHz",
+    "cpu_count": 4,
+    "ram_gb": 31.35
+  },
+  "runtime": {
+    "startup_time_s": {
+      "app_launch": 0.000815811,
+      "env_creation": 15.710352703,
+      "first_step": 0.298632878,
+      "python_imports": null,
+      "task_config": null
+    },
+    "iterations_completed": 800,
+    "total_wall_time_s": 19.846824072,
+    "steps_per_iteration": 16,
+    "iteration_time_s": {
+      "mean": 0.02480853009,
+      "std": 0.0030694647195240315,
+      "peak": 0.040210938
+    },
+    "collection_fps": {
+      "mean": 654.0218264979159,
+      "std": 74.59059539299979,
+      "peak": 826.3100849441604
+    },
+    "total_fps": {
+      "mean": 654.0218264979159,
+      "std": 74.59059539299979,
+      "peak": 826.3100849441604
+    },
+    "iterations_per_s": {
+      "mean": 40.87636415611974,
+      "std": 4.661912212062487,
+      "peak": 51.644380309010025
+    },
+    "environment_step_timing": {
+      "environment_step_time_s": {
+        "mean": 0.0243958749375,
+        "std": 0.0030174781213501284,
+        "peak": 0.039363019
+      },
+      "environment_step_fps": {
+        "mean": 655.8485826390952,
+        "std": 75.80200848757924,
+        "peak": 840.6771738703243
+      },
+      "simulation_step_time_s": null,
+      "outside_simulation_step_time_s": null,
+      "outside_simulation_step_fraction": null,
+      "environment_step_calls": 800,
+      "simulation_step_calls": null,
+      "measurement_mode": "host_return",
+      "warmup_steps": 1
+    }
+  },
+  "resources": {
+    "gpu_util_pct": {
+      "mean": 35.95,
+      "std": 9.08,
+      "peak": null
+    },
+    "gpu_mem_gb": {
+      "mean": 2.47,
+      "std": 0.02,
+      "peak": 2.48
+    },
+    "cpu_util_pct": {
+      "mean": 150.84000000000003,
+      "std": 35.93171008279016,
+      "peak": null
+    },
+    "ram_gb": {
+      "mean": 2.85,
+      "std": 0.04,
+      "peak": 2.86
+    },
+    "devices": {
+      "0": {
+        "util_pct": {
+          "mean": 35.95,
+          "std": 9.08,
+          "peak": null
+        },
+        "mem_gb": {
+          "mean": 2.47,
+          "std": 0.02,
+          "peak": 2.48
+        }
+      },
+      "1": {
+        "util_pct": {
+          "mean": 0.0,
+          "std": 0.0,
+          "peak": null
+        },
+        "mem_gb": {
+          "mean": 0.1,
+          "std": 0.0,
+          "peak": 0.1
+        }
+      }
+    }
+  },
+  "success_rate": 0.0,
+  "reward": {
+    "mean": 0.7376211689364526,
+    "std": 0.23106581401067497,
+    "peak": 1.2025103569030762
+  },
+  "ep_length": {
+    "mean": 314.93548387096774,
+    "std": 76.3216594350826,
+    "peak": 471.0
+  },
+  "checkpoint_path": "/kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/model_499.pt",
+  "video_path": null,
+  "extra": null,
+  "schema_version": "1.4"
+}

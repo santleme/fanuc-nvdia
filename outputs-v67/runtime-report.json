@@ -1,0 +1,734 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=name,memory.total",
+        "--format=csv,noheader"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.036,
+      "stdout_tail": "Tesla T4, 15360 MiB\nTesla T4, 15360 MiB\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=driver_version",
+        "--format=csv,noheader"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.036,
+      "stdout_tail": "580.178.04\n580.178.04\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        "--branch",
+        "v3.0.0",
+        "https://github.com/isaac-sim/IsaacLab.git",
+        "/kaggle/working/IsaacLab"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 3.307,
+      "stdout_tail": "",
+      "stderr_tail": "Cloning into '/kaggle/working/IsaacLab'...\nNote: switching to 'e3f7d9ff1f5d7f8280de3ece9000b7117f66bcf4'.\n\nYou are in 'detached HEAD' state. You can look around, make experimental\nchanges and commit them, and you can discard any commits you make in this\nstate without impacting any branches by switching back to a branch.\n\nIf you want to create a new branch to retain commits you create, you may\ndo so (now or later) by using -c with the switch command. Example:\n\n  git switch -c <new-branch-name>\n\nOr undo this operation with:\n\n  git switch -\n\nTurn off this advice by setting config variable advice.detachedHead to false\n\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "sync"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 116.314,
+      "stdout_tail": "",
+      "stderr_tail": "e\nDownloading pydantic-core (2.0MiB)\nDownloading networkx (2.0MiB)\nDownloading pygments (1.2MiB)\nDownloading kiwisolver (1.4MiB)\nDownloading fast-simplification (1.6MiB)\nDownloading cmeel-octomap (1.1MiB)\nDownloading hidapi (1.0MiB)\nDownloading setuptools (1.0MiB)\nDownloading cmeel-zlib (1.0MiB)\n Downloaded transformers\n Downloaded imgui-bundle\n Downloaded pandas\n Downloaded hidapi\n Downloaded cmeel-octomap\n Downloaded setuptools\n Downloaded cmeel-zlib\n Downloaded pygments\n Downloaded nvidia-nvshmem-cu13\n Downloaded nvidia-curand\n Downloaded kiwisolver\n Downloaded fast-simplification\n Downloaded pydantic-core\n Downloaded networkx\n Downloaded botocore\n Downloaded nvidia-nvjitlink\n Downloaded cmeel-assimp\n Downloaded numpy\n Downloaded torch\n Downloaded omniverseclient\n Downloaded warp-lang\n Downloaded nvidia-cuda-nvrtc\n      Built isaaclab-contrib @ file:///kaggle/working/IsaacLab/source/isaaclab_contrib\n      Built isaaclab-experimental @ file:///kaggle/working/IsaacLab/source/isaaclab_experimental\n      Built isaaclab-tasks-experimental @ file:///kaggle/working/IsaacLab/source/isaaclab_tasks_experimental\n      Built isaaclab-assets @ file:///kaggle/working/IsaacLab/source/isaaclab_assets\n      Built isaaclab-ppisp @ file:///kaggle/working/IsaacLab/source/isaaclab_ppisp\n      Built isaaclab-ov @ file:///kaggle/working/IsaacLab/source/isaaclab_ov\n      Built isaaclab-rl @ file:///kaggle/working/IsaacLab/source/isaaclab_rl\n      Built isaaclab @ file:///kaggle/working/IsaacLab/source/isaaclab\n      Built isaaclab-visualizers @ file:///kaggle/working/IsaacLab/source/isaaclab_visualizers\n Downloaded onnx\n      Built isaaclab-physx @ file:///kaggle/working/IsaacLab/source/isaaclab_physx\n      Built isaaclab-tasks @ file:///kaggle/working/IsaacLab/source/isaaclab_tasks\n Downloaded mujoco\n      Built isaaclab-newton @ file:///kaggle/working/IsaacLab/source/isaaclab_newton\n Downloaded nvidia-cusparse\n Downloaded nvidia-nccl-cu13\n Downloaded nvidia-cufft\n Downloaded nvidia-cusolver\n Downloaded nvidia-cublas\n Downloaded nvidia-cudnn-cu13\n Downloaded scipy\n Downloaded cmeel-boost\nDownloading nvidia-cusparselt-cu13 (162.0MiB)\n Downloaded nvidia-cusparselt-cu13\n Downloaded llvmlite\n Downloaded hf-xet\n Downloaded ovstage\n Downloaded triton\n Downloaded open3d\nPrepared 207 packages in 1m 28s\nwarning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 207 packages in 25.46s\n + absl-py==2.4.0\n + addict==2.4.0\n + alphashape==1.3.1\n + annotated-doc==0.0.4\n + annotated-types==0.8.0\n + anyio==4.14.2\n + asttokens==3.0.2\n + attrs==25.1.0\n + blinker==1.9.0\n + botocore==1.41.5\n + certifi==2026.7.22\n + charset-normalizer==3.3.2\n + click==8.3.3\n + click-log==0.4.0\n + cloudpickle==3.1.2\n + cmeel==0.60.1\n + cmeel-assimp==6.0.5\n + cmeel-boost==1.89.0\n + cmeel-console-bridge==1.0.2.3\n + cmeel-octomap==1.10.0\n + cmeel-qhull==8.0.2.1\n + cmeel-tinyxml2==10.0.0\n + cmeel-urdfdom==4.0.1\n + cmeel-zlib==1.3.2\n + coacd==1.0.7\n + coal==3.0.2\n + comm==0.2.3\n + configargparse==1.7.5\n + contourpy==1.3.3\n + cuda-bindings==13.3.1\n + cuda-pathfinder==1.6.0\n + cuda-toolkit==13.0.2\n + cycler==0.12.1\n + daqp==0.8.5\n + dash==4.4.1\n + decorator==4.4.2\n + eigenpy==3.12.0\n + einops==0.9.0.dev0\n + etils==1.13.0\n + executing==2.2.1\n + farama-notifications==0.0.6\n + fast-simplification==0.1.13\n + fastjsonschema==2.22.1\n + filelock==3.25.2\n + flask==3.1.3\n + fonttools==4.61.1\n + fsspec==2026.6.0\n + gitdb==4.0.12\n + gitpython==3.1.60\n + glfw==2.10.0\n + grpcio==1.83.0\n + gymnasium==1.3.0\n + h11==0.16.0\n + h5py==3.16.0\n + hf-xet==1.6.0.dev0\n + hidapi==0.15.0\n + httpcore==1.0.9\n + httpx==0.28.1\n + huggingface-hub==1.16.1\n + hydra-core==1.4.0.dev10\n + idna==3.10\n + imgui-bundle==1.92.601\n + importlib-metadata==9.0.0\n + importlib-resources==7.1.0\n + ipython==9.10.1\n + ipython-pygments-lexers==1.1.1\n + ipywidgets==8.1.8\n + isaaclab==28.0.0 (from file:///kaggle/working/IsaacLab/source/isaaclab)\n + isaaclab-assets==2.0.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_assets)\n + isaaclab-contrib==3.2.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_contrib)\n + isaaclab-experimental==0.2.6 (from file:///kaggle/working/IsaacLab/source/isaaclab_experimental)\n + isaaclab-newton==9.1.4 (from file:///kaggle/working/IsaacLab/source/isaaclab_newton)\n + isaaclab-ov==5.1.5 (from file:///kaggle/working/IsaacLab/source/isaaclab_ov)\n + isaaclab-physx==8.0.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_physx)\n + isaaclab-ppisp==0.3.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_ppisp)\n + isaaclab-rl==1.5.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_rl)\n + isaaclab-tasks==25.2.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_tasks)\n + isaaclab-tasks-experimental==1.0.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_tasks_experimental)\n + isaaclab-visualizers==2.1.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_visualizers)\n + itsdangerous==2.2.0\n + janus==2.0.0\n + jedi==0.20.0\n + jinja2==3.1.6\n + jmespath==1.0.1\n + joblib==1.5.3\n + jsonschema==4.26.0\n + jsonschema-specifications==2025.9.1\n + jupyter-core==5.9.1\n + jupyterlab-widgets==3.0.16\n + kiwisolver==1.4.9\n + lazy-loader==0.5\n + libcoal==3.0.2\n + libpinocchio==3.9.0\n + llvmlite==0.46.0\n + loop-rate-limiters==1.2.0\n + markdown==3.10.2\n + markdown-it-py==4.2.0\n + markupsafe==3.0.3\n + matplotlib==3.10.8\n + matplotlib-inline==0.2.2\n + mdurl==0.1.2\n + meshio==5.3.5\n + ml-dtypes==0.5.4\n + mpmath==1.3.0\n + mujoco==3.12.0\n + mujoco-warp==3.12.0\n + narwhals==2.24.0\n + nbformat==5.10.4\n + nest-asyncio==1.6.0\n + networkx==3.6.1\n + newton==1.6.1\n + newton-usd-schemas==0.5.0\n + numba==0.64.0\n + numpy==2.5.1\n + nvidia-cublas==13.1.0.3\n + nvidia-cuda-cupti==13.0.85\n + nvidia-cuda-nvrtc==13.0.88\n + nvidia-cuda-runtime==13.0.96\n + nvidia-cudnn-cu13==9.19.0.56\n + nvidia-cufft==12.0.0.61\n + nvidia-cufile==1.15.1.6\n + nvidia-curand==10.4.0.35\n + nvidia-cusolver==12.0.4.66\n + nvidia-cusparse==12.6.3.3\n + nvidia-cusparselt-cu13==0.8.0\n + nvidia-nccl-cu13==2.28.9\n + nvidia-nvjitlink==13.0.88\n + nvidia-nvshmem-cu13==3.4.5\n + nvidia-nvtx==13.0.85\n + omegaconf==2.4.0\n + omniverseclient==2.74.0\n + onnx==1.22.0\n + onnx-ir==0.2.1\n + onnxscript==0.7.2.dev20260725\n + open3d==0.19.0\n + orjson==3.11.9\n + ovstage==0.2.1.385922\n + packaging==26.0\n + pandas==3.0.5\n + parso==0.8.7\n + pexpect==4.9.0\n + pillow==12.3.0\n + pin==3.9.0\n + pin-pink==3.3.0\n + platformdirs==4.11.0\n + plotly==6.9.0\n + prettytable==3.18.0\n + prompt-toolkit==3.0.53\n + protobuf==7.36.0rc1\n + psutil==5.9.8\n + ptyprocess==0.7.0\n + pure-eval==0.2.3\n + pycollada==0.9.3\n + pydantic==2.14.0a1\n + pydantic-core==2.47.0\n + pyglet==2.1.15\n + pygments==2.20.0\n + pyopengl==4.0.0a1\n + pyopengl-accelerate==3.1.10\n + pyparsing==3.3.2\n + pyquaternion==0.9.9\n + python-dateutil==2.9.0.post0\n + pyvers==0.2.3\n + pyyaml==6.0.3\n + qpsolvers==4.13.0\n + referencing==0.37.0\n + regex==2026.7.19\n + requests==2.32.3\n + resolve-robotics-uri-py==0.5.1\n + retrying==1.4.2\n + rich==14.3.4\n + rpds-py==2026.6.3\n + rsl-rl-lib==5.5.1\n + rtree==1.4.1\n + safetensors==0.8.0\n + scikit-learn==1.9.0\n + scipy==1.17.0\n + setuptools==81.0.0\n + shapely==2.1.2\n + shellingham==1.5.4\n + six==1.17.0\n + smmap==5.0.3\n + stack-data==0.6.3\n + starlette==1.6.0\n + sympy==1.14.0\n + tensorboard==2.21.0\n + tensorboard-data-server==0.7.2\n + tensordict==0.14.2\n + threadpoolctl==3.6.0\n + tokenizers==0.23.0rc0\n + torch==2.11.0+cu130\n + torchvision==0.26.0+cu130\n + tqdm==4.70.0\n + traitlets==5.15.1\n + transformers==5.10.4\n + trimesh==4.11.1\n + triton==3.6.0\n + typer==0.27.2\n + typing-extensions==4.16.0\n + typing-inspection==0.4.2\n + urllib3==2.8.0\n + usd-exchange==3.0.1\n + warp-lang==1.17.0\n + wcwidth==0.8.2\n + werkzeug==3.1.8\n + widgetsnbextension==4.0.15\n + zipp==4.1.0\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "isaaclab",
+        "--new",
+        "--non_interactive",
+        "--task_type",
+        "external",
+        "--project_path",
+        "/kaggle/working",
+        "--name",
+        "fanuc_cell_lab",
+        "--author",
+        "Pascal Coimbra",
+        "--task_name",
+        "conveyor_pick_place",
+        "--robot_name",
+        "m10id12",
+        "--workflow",
+        "manager-based:single-agent",
+        "--rl_library",
+        "rsl_rl",
+        "--rl_algorithm",
+        "ppo"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.93,
+      "stdout_tail": "\nValidating specification...\nGenerating external project...\n  |-- Copying repo files...\n  |-- Copying utility scripts...\n  |-- Generating tasks...\n  |    |-- Generating 'FanucCellLab-Conveyor-Pick-Place-M10ID12' task...\n  |-- Creating project asset structure...\n  |-- Generating tests...\n  |-- Copying vscode files...\nSetting up git repo in /kaggle/working/fanuc_cell_lab path...\n  |  Initialized empty Git repository in /kaggle/working/fanuc_cell_lab/.git/\n\n--------------------------------------------------------------------------------\nProject 'fanuc_cell_lab' generated successfully in /kaggle/working/fanuc_cell_lab path.\nSee /kaggle/working/fanuc_cell_lab/README.md to get started!\n--------------------------------------------------------------------------------\n[INFO] Running template generator...\n[INFO] Using Python: \"/kaggle/working/IsaacLab/.venv/bin/python\"\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--extra",
+        "importers",
+        "--extra",
+        "ovphysx",
+        "isaaclab",
+        "-p",
+        "/kaggle/working/IsaacLab/scripts/tools/convert_urdf_ovphysx.py",
+        "/kaggle/working/fanuc-cell/assets/m10id12_robot.urdf",
+        "/kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data",
+        "--joint-stiffness",
+        "0.0",
+        "--joint-damping",
+        "0.0",
+        "--joint-target-type",
+        "none"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 23.949,
+      "stdout_tail": "--------------------------------------------------------------------------------\n--------------------------------------------------------------------------------\nInput URDF file: /kaggle/working/fanuc-cell/assets/m10id12_robot.urdf\nURDF importer config:\n    asset_path: /kaggle/working/fanuc-cell/assets/m10id12_robot.urdf\n    usd_dir: /kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data\n    usd_file_name: None\n    force_usd_conversion: True\n    make_instanceable: True\n    physics_variant: physics\n    fix_base: False\n    root_link_name: None\n    link_density: 0.0\n    merge_fixed_joints: False\n    convert_mimic_joints_to_normal_joints: False\n    joint_drive: \n        drive_type: force\n        target_type: none\n        gains: \n            stiffness: 0.0\n            damping: 0.0\n    collision_from_visuals: False\n    collision_type: Convex Hull\n    self_collision: False\n    replace_cylinders_with_capsules: False\n    merge_mesh: False\n    ros_package_paths: []\n    robot_type: Default\n    run_asset_transformer: True\n    run_multi_physics_conversion: True\n    debug_mode: False\n--------------------------------------------------------------------------------\n--------------------------------------------------------------------------------\nURDF importer output:\nGenerated USD file: /kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data/m10id12_robot/m10id12_robot.usda\n--------------------------------------------------------------------------------\n--------------------------------------------------------------------------------\n[INFO] Using Python: \"/kaggle/working/IsaacLab/.venv/bin/python\"\n",
+      "stderr_tail": "Downloading ovphysx (132.9MiB)\nDownloading usd-optimize (59.1MiB)\n Downloaded usd-optimize\n Downloaded ovphysx\nwarning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 10 packages in 459ms\nStatus: in urdf_usd_converter._impl.convert.convert at line 63 of /kaggle/working/IsaacLab/.venv/lib/python3.12/site-packages/urdf_usd_converter/_impl/convert.py -- Converting /kaggle/working/fanuc-cell/assets/m10id12_robot.urdf into /tmp/urdf_import_m10id12_robot_bkxyfuwt/usdex_m10id12_robot\nStatus: in saveStage at line 263 of /builds/omniverse/usd-exchange/usd-exchange/source/core/library/StageAlgo.cpp -- Saving \"stage with rootLayer @/tmp/tmp4dz33a8f/Payload/MaterialsLibrary.usdc@, sessionLayer @anon:0x3cbc6d10:MaterialsLibrary-session.usda@\" with comment \"Material Library for m10id12_robot. \"\nStatus: in exportLayer at line 98 of /builds/omniverse/usd-exchange/usd-exchange/source/core/library/LayerAlgo.cpp -- Exporting \"/tmp/urdf_import_m10id12_robot_bkxyfuwt/usdex_m10id12_robot/m10id12_robot.usdc\" with comment \"\"\nStiffness and damping not available joint /m10id12_robot/Physics/J1, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J2, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J3, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J4, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J5, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J6, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/gripper_left, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/gripper_right, actuator will be created without gain parameters\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "-c",
+        "import json,sys; from pxr import Usd,UsdPhysics,Sdf; stage=Usd.Stage.Open(sys.argv[1]); bodies=[p for p in stage.Traverse() if p.HasAPI(UsdPhysics.RigidBodyAPI)]; [(p.AddAppliedSchema('PhysxRigidBodyAPI'), p.AddAppliedSchema('PhysxContactReportAPI'),  p.CreateAttribute('physxRigidBody:sleepThreshold', Sdf.ValueTypeNames.Float, custom=False).Set(0.0),  p.CreateAttribute('physxContactReport:threshold', Sdf.ValueTypeNames.Float, custom=False).Set(0.0))  for p in bodies]; stage.GetRootLayer().Save(); print(json.dumps({'contact_report_bodies':len(bodies)}))",
+        "/kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data/m10id12_robot/m10id12_robot.usd"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.343,
+      "stdout_tail": "{\"contact_report_bodies\": 10}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "-c",
+        "import json,sys; from pxr import Usd,UsdPhysics; stage=Usd.Stage.Open(sys.argv[1]); ps=list(stage.Traverse()); r=sum(p.IsA(UsdPhysics.RevoluteJoint) for p in ps); j=sum(p.IsA(UsdPhysics.PrismaticJoint) for p in ps); b=[str(p.GetPath()) for p in ps if p.HasAPI(UsdPhysics.RigidBodyAPI)]; print(json.dumps({\"revolute_joints\":int(r),\"prismatic_joints\":int(j),\"rigid_bodies\":b}))",
+        "/kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data/m10id12_robot/m10id12_robot.usd"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.379,
+      "stdout_tail": "{\"revolute_joints\": 6, \"prismatic_joints\": 2, \"rigid_bodies\": [\"/m10id12_robot/Geometry/base_link\", \"/m10id12_robot/Geometry/base_link/link_1\", \"/m10id12_robot/Geometry/base_link/link_1/link_2\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/left_finger\", \"/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/right_finger\"]}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--extra",
+        "ovphysx",
+        "python",
+        "/kaggle/working/fanuc_cell_lab/scripts/diagnose_training_nan.py",
+        "--device",
+        "cuda:0",
+        "--num-envs",
+        "64",
+        "--steps",
+        "24",
+        "--seed",
+        "7"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 44.636,
+      "stdout_tail": "[INFO]: Base environment:\n\tEnvironment device    : cuda:0\n\tEnvironment seed      : None\n\tPhysics step-size     : 0.01\n\tRendering step-size   : 0.02\n\tEnvironment step-size : 0.02\n[INFO]: Time taken for scene creation Last: 3.456238 s, Mean: 3.456238 s, Std: 0.000000 s, N: 1\n[INFO]: Scene manager:  <class InteractiveScene>\n\tNumber of environments: 64\n\tEnvironment spacing   : 3.0\n\tSource prim name      : /World/envs/env_0\n\tGlobal prim paths     : []\n\tReplicate physics     : True\n[INFO]: Time taken for simulation start Last: 32.075237 s, Mean: 32.075237 s, Std: 0.000000 s, N: 1\n[INFO] Command Manager:  <CommandManager> contains 0 active terms.\n+----------------------+\n| Active Command Terms |\n+-------+------+-------+\n| Index | Name |  Type |\n+-------+------+-------+\n+-------+------+-------+\n\n[INFO] Event Manager:  <EventManager> contains 2 active terms.\n+-------------------------------------+\n| Active Event Terms in Mode: 'reset' |\n+------------+------------------------+\n|   Index    | Name                   |\n+------------+------------------------+\n|     0      | reset_part             |\n+------------+------------------------+\n+----------------------------------------------------+\n|       Active Event Terms in Mode: 'interval'       |\n+-------+------------------+-------------------------+\n| Index | Name             | Interval time range (s) |\n+-------+------------------+-------------------------+\n|   0   | advance_conveyor |       (0.02, 0.02)      |\n+-------+------------------+-------------------------+\n\n[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.\n+-----------------------+\n| Active Recorder Terms |\n+------------+----------+\n|   Index    | Name     |\n+------------+----------+\n+------------+----------+\n\n[INFO] Action Manager:  <ActionManager> contains 2 active terms.\n+--------------------------------+\n| Active Action Terms (shape: 8) |\n+-------+----------+-------------+\n| Index | Name     |   Dimension |\n+-------+----------+-------------+\n|   0   | arm      |           6 |\n|   1   | gripper  |           2 |\n+-------+----------+-------------+\n\n[INFO] Observation Manager: <ObservationManager> contains 1 groups.\n+------------------------------------------------------------+\n| Active Observation Terms in Group: 'policy' (shape: (22,)) |\n+----------+------------------------------------+------------+\n|  Index   | Name                               |   Shape    |\n+----------+------------------------------------+------------+\n|    0     | joint_position                     |    (8,)    |\n|    1     | joint_velocity                     |    (8,)    |\n|    2     | part_relative_to_tcp               |    (3,)    |\n|    3     | part_velocity                      |    (3,)    |\n+----------+------------------------------------+------------+\n\n[INFO] Termination Manager:  <TerminationManager> contains 3 active terms.\n+--------------------------------+\n|    Active Termination Terms    |\n+-------+-------------+----------+\n| Index | Name        | Time Out |\n+-------+-------------+----------+\n|   0   | time_out    |   True   |\n|   1   | success     |  False   |\n|   2   | object_lost |  False   |\n+-------+-------------+----------+\n\n[INFO] Reward Manager:  <RewardManager> contains 8 active terms.\n+-------------------------------+\n|      Active Reward Terms      |\n+-------+--------------+--------+\n| Index | Name         | Weight |\n+-------+--------------+--------+\n|   0   | reach        |    1.0 |\n|   1   | lift         |    4.0 |\n|   2   | grasp        |    8.0 |\n|   3   | place        |    4.0 |\n|   4   | release      |   20.0 |\n|   5   | lost         |  -10.0 |\n|   6   | action_rate  | -0.005 |\n|   7   | success_rate |    0.0 |\n+-------+--------------+--------+\n\n[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.\n+-------------------------+\n| Active Curriculum Terms |\n+-------------+-----------+\n|    Index    | Name      |\n+-------------+-----------+\n+-------------+-----------+\n\n[INFO]: Completed setting up the environment...\n{\"finite\": true, \"steps\": 24, \"num_envs\": 64}\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+      "stderr_tail": "Seed not set for the environment. The environment creation may not be deterministic.\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--extra",
+        "ovphysx",
+        "python",
+        "/kaggle/working/fanuc_cell_lab/scripts/run_scripted_demo.py",
+        "--device",
+        "cuda:0",
+        "--seed",
+        "23",
+        "--output",
+        "/kaggle/working/isaaclab-baseline.json"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 22.934,
+      "stdout_tail": "-2.132253228148695e-11,\n        0.03490716964006424,\n        -0.0488402284681797,\n        2.83674871787154e-11,\n        0.03848181292414665,\n        8.254359001869105e-12,\n        8.661744065052712e-12,\n        9.40113351749483e-12\n      ],\n      \"tcp_position_m\": [\n        1.2796748876571655,\n        -3.6597107566649356e-08,\n        0.5952816009521484\n      ],\n      \"part_position_m\": [\n        0.8332400918006897,\n        -1.77017000169144e-07,\n        0.15000095963478088\n      ],\n      \"part_tcp_distance_m\": 0.6305385828018188,\n      \"gripper_joint_positions_rad\": [\n        8.661744065052712e-12,\n        9.40113351749483e-12\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": false,\n      \"capture_anchor_part_position_m\": null\n    },\n    {\n      \"time_s\": 1.8,\n      \"phase\": \"approach\",\n      \"target_arm_joints_rad\": [\n        1.287380032130174e-05,\n        1.8727629833306345,\n        -1.9697575259015188,\n        -4.578646014942219e-05,\n        0.09705574595492955,\n        4.523914599557232e-05\n      ],\n      \"actual_joints_rad\": [\n        4.193415861664107e-06,\n        1.6599549055099487,\n        -1.764018177986145,\n        -3.0784889531787485e-05,\n        0.10383667051792145,\n        2.863322697521653e-05,\n        7.943332320792251e-07,\n        -5.509283584892444e-10\n      ],\n      \"tcp_position_m\": [\n        0.927287220954895,\n        3.280359578639036e-06,\n        0.36233505606651306\n      ],\n      \"part_position_m\": [\n        0.9575203061103821,\n        1.127285031543579e-05,\n        0.15000085532665253\n      ],\n      \"part_tcp_distance_m\": 0.21447576582431793,\n      \"gripper_joint_positions_rad\": [\n        7.943332320792251e-07,\n        -5.509283584892444e-10\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": false,\n      \"capture_anchor_part_position_m\": null\n    },\n    {\n      \"time_s\": 3.0,\n      \"phase\": \"grasp\",\n      \"target_arm_joints_rad\": [\n        0.0,\n        1.5966156218061827,\n        -1.4550744192492506,\n        0.0,\n        -0.1413250198287471,\n        0.0\n      ],\n      \"actual_joints_rad\": [\n        1.2856946341344155e-05,\n        1.5936660766601562,\n        -1.6784586906433105,\n        -3.587817218431155e-06,\n        0.05772574245929718,\n        3.785442913795123e-06,\n        0.001979335444048047,\n        0.001979154534637928\n      ],\n      \"tcp_position_m\": [\n        0.9498136043548584,\n        1.2088363291695714e-05,\n        0.3510141670703888\n      ],\n      \"part_position_m\": [\n        1.0403738021850586,\n        1.8842525605577976e-05,\n        0.15000085532665253\n      ],\n      \"part_tcp_distance_m\": 0.2204710841178894,\n      \"gripper_joint_positions_rad\": [\n        0.001979335444048047,\n        0.001979154534637928\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": false,\n      \"capture_anchor_part_position_m\": null\n    },\n    {\n      \"time_s\": 3.5,\n      \"phase\": \"hold\",\n      \"target_arm_joints_rad\": [\n        1.990832764987892e-05,\n        1.5839255498608318,\n        -1.4425115318628925,\n        3.4116612973234294e-05,\n        -0.1412888987519653,\n        -3.2929187148302344e-05\n      ],\n      \"actual_joints_rad\": [\n        0.000596784520894289,\n        1.5882569551467896,\n        -1.4383108615875244,\n        6.73553004162386e-05,\n        -0.1416787952184677,\n        7.535783515777439e-05,\n        0.005434870254248381,\n        0.006592414807528257\n      ],\n      \"tcp_position_m\": [\n        0.945654034614563,\n        0.0005625127232633531,\n        0.16204074025154114\n      ],\n      \"part_position_m\": [\n        1.0467053651809692,\n        0.0012107109650969505,\n        0.14999961853027344\n      ],\n      \"part_tcp_distance_m\": 0.10176827013492584,\n      \"gripper_joint_positions_rad\": [\n        0.005434870254248381,\n        0.006592414807528257\n      ],\n      \"left_contact_force_n\": 13.130148887634277,\n      \"right_contact_force_n\": 10.783714294433594,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    },\n    {\n      \"time_s\": 4.7,\n      \"phase\": \"lift\",\n      \"target_arm_joints_rad\": [\n        1.9578074141472063e-05,\n        1.5920141849748954,\n        -1.7076231150474814,\n        -2.9766661404825317e-05,\n        0.11564010403132002,\n        2.8828907589905647e-05\n      ],\n      \"actual_joints_rad\": [\n        2.7271697035757825e-05,\n        1.604616403579712,\n        -1.4686784744262695,\n        -5.9904805311816745e-06,\n        -0.09043072164058685,\n        1.160702777269762e-05,\n        0.006022775545716286,\n        0.006010590121150017\n      ],\n      \"tcp_position_m\": [\n        0.9417973160743713,\n        2.5514702429063618e-05,\n        0.16628919541835785\n      ],\n      \"part_position_m\": [\n        1.0438381433486938,\n        2.2825381165603176e-05,\n        0.15086151659488678\n      ],\n      \"part_tcp_distance_m\": 0.1032005026936531,\n      \"gripper_joint_positions_rad\": [\n        0.006022775545716286,\n        0.006010590121150017\n      ],\n      \"left_contact_force_n\": 11.95504379272461,\n      \"right_contact_force_n\": 11.847838401794434,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    },\n    {\n      \"time_s\": 7.5,\n      \"phase\": \"transfer\",\n      \"target_arm_joints_rad\": [\n        -0.8350523024258754,\n        1.4664219901437185,\n        -1.75083240685012,\n        1.3189121888751791,\n        0.8701003829675331,\n        -1.1931197745769895\n      ],\n      \"actual_joints_rad\": [\n        -0.022993624210357666,\n        1.5782097578048706,\n        -1.692963719367981,\n        0.19388563930988312,\n        0.18026067316532135,\n        -0.1735212355852127,\n        0.005142537411302328,\n        0.006796662230044603\n      ],\n      \"tcp_position_m\": [\n        0.9519333243370056,\n        -0.015672745183110237,\n        0.3581383228302002\n      ],\n      \"part_position_m\": [\n        1.0470072031021118,\n        -0.012499511241912842,\n        0.31128692626953125\n      ],\n      \"part_tcp_distance_m\": 0.10603850334882736,\n      \"gripper_joint_positions_rad\": [\n        0.005142537411302328,\n        0.006796662230044603\n      ],\n      \"left_contact_force_n\": 23.92414093017578,\n      \"right_contact_force_n\": 11.098369598388672,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    },\n    {\n      \"time_s\": 8.3,\n      \"phase\": \"release\",\n      \"target_arm_joints_rad\": [\n        -0.8350722516612739,\n        1.5630313059788037,\n        -1.5888995421896883,\n        1.5464881399918258,\n        0.8350775307773379,\n        -1.5350358506606097\n      ],\n      \"actual_joints_rad\": [\n        -0.833599865436554,\n        1.5682538747787476,\n        -1.58521568775177,\n        1.5465306043624878,\n        0.8357580304145813,\n        -1.5180853605270386,\n        0.0029073520563542843,\n        0.0045813871547579765\n      ],\n      \"tcp_position_m\": [\n        0.704794704914093,\n        -0.5776625275611877,\n        0.2920387387275696\n      ],\n      \"part_position_m\": [\n        0.8147843480110168,\n        -0.5768301486968994,\n        0.2878641188144684\n      ],\n      \"part_tcp_distance_m\": 0.11007198691368103,\n      \"gripper_joint_positions_rad\": [\n        0.0029073520563542843,\n        0.0045813871547579765\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    }\n  ],\n  \"success\": true\n}\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+      "stderr_tail": "Seed not set for the environment. The environment creation may not be deterministic.\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "sync"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 83.672,
+      "stdout_tail": "",
+      "stderr_tail": "Using CPython 3.12.15\nCreating virtual environment at: .venv\n   Updating https://github.com/isaac-sim/rl_games.git (5cf4f9ff07e9a01bbefd167cf19b6804b294b51c)\n   Updating https://github.com/ARISE-Initiative/robomimic.git (v0.4.0)\n    Updated https://github.com/ARISE-Initiative/robomimic.git (7c66e7a41b5d9dcc905b1a68346bfee1b49b79c9)\n    Updated https://github.com/isaac-sim/rl_games.git (5cf4f9ff07e9a01bbefd167cf19b6804b294b51c)\nResolved 448 packages in 22.48s\n   Building isaaclab-dev @ file:///kaggle/working/IsaacLab\n   Building fanuc-cell-lab @ file:///kaggle/working/fanuc_cell_lab\nwarning: `build_system.requires = [\"uv-build>=0.12.6,<0.13\"]` does not contain the current uv version 0.13.5\n      Built fanuc-cell-lab @ file:///kaggle/working/fanuc_cell_lab\nDownloading numpy (16.0MiB)\nDownloading pydantic-core (2.1MiB)\nDownloading virtualenv (5.3MiB)\nDownloading grpcio (7.0MiB)\nDownloading plotly (9.2MiB)\nDownloading pygments (1.2MiB)\nDownloading jedi (4.7MiB)\nDownloading widgetsnbextension (2.1MiB)\nDownloading hf-xet (65.1MiB)\nDownloading ruff (10.1MiB)\nDownloading pyopengl (3.0MiB)\nDownloading cuda-bindings (6.8MiB)\nDownloading shapely (2.2MiB)\nDownloading open3d (382.2MiB)\nDownloading dash (8.8MiB)\nDownloading onnx (8.5MiB)\n Downloaded pygments\n Downloaded widgetsnbextension\n Downloaded pydantic-core\n Downloaded shapely\n Downloaded pyopengl\n Downloaded jedi\n Downloaded virtualenv\n Downloaded grpcio\n Downloaded cuda-bindings\n Downloaded onnx\n Downloaded dash\n Downloaded plotly\n Downloaded ruff\n      Built isaaclab-dev @ file:///kaggle/working/IsaacLab\n Downloaded numpy\n Downloaded hf-xet\n Downloaded open3d\nPrepared 73 packages in 31.18s\nwarning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 216 packages in 29.77s\n + absl-py==2.4.0\n + alphashape==1.3.1\n + annotated-doc==0.0.5\n + annotated-types==0.8.0\n + anyio==4.14.2\n + asttokens==3.0.2\n + attrs==25.1.0\n + blinker==1.9.0\n + botocore==1.41.5\n + certifi==2026.10.23\n + cfgv==3.5.0\n + charset-normalizer==3.3.2\n + click==8.3.3\n + click-log==0.4.0\n + cloudpickle==3.1.2\n + cmeel==0.61.0\n + cmeel-assimp==6.0.5\n + cmeel-boost==1.89.0\n + cmeel-console-bridge==1.0.2.3\n + cmeel-octomap==1.10.0\n + cmeel-qhull==8.0.2.1\n + cmeel-tinyxml2==10.0.0\n + cmeel-urdfdom==4.0.1\n + cmeel-zlib==1.3.2\n + coacd==1.0.7\n + coal==3.0.2\n + codespell==2.4.3\n + comm==0.2.3\n + configargparse==1.8.0\n + contourpy==1.3.3\n + cuda-bindings==13.4.4\n + cuda-pathfinder==1.8.4\n + cuda-toolkit==13.0.2\n + cycler==0.12.1\n + daqp==0.8.5\n + dash==4.5.0rc2\n + decorator==4.4.2\n + distlib==0.4.4\n + eigenpy==3.12.0\n + einops==0.9.0.dev0\n + etils==1.13.0\n + executing==2.3.0\n + fanuc-cell-lab==0.1.0 (from file:///kaggle/working/fanuc_cell_lab)\n + farama-notifications==0.0.6\n + fast-simplification==0.2.0\n + fastjsonschema==2.22.2\n + filelock==3.25.2\n + flask==3.1.3\n + fonttools==4.61.1\n + fsspec==2026.9.0\n + gitdb==4.0.12\n + gitpython==3.2.1\n + glfw==2.10.0\n + grpcio==1.85.0\n + gymnasium==1.4.0\n + h11==0.16.0\n + h5py==3.16.0\n + hf-xet==1.8.0.dev0\n + hidapi==0.15.0\n + httpcore==1.0.9\n + httpx==0.28.1\n + huggingface-hub==1.16.1\n + hydra-core==1.4.0rc3\n + identify==2.6.20\n + idna==3.10\n + imgui-bundle==1.92.601\n + importlib-metadata==10.1.0\n + importlib-resources==7.1.0\n + iniconfig==2.3.1\n + ipython==9.10.1\n + ipython-pygments-lexers==1.1.1\n + ipywidgets==8.1.9\n + isaaclab==28.0.0 (from file:///kaggle/working/IsaacLab/source/isaaclab)\n + isaaclab-assets==2.0.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_assets)\n + isaaclab-contrib==3.2.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_contrib)\n + isaaclab-dev==0.1.0 (from file:///kaggle/working/IsaacLab)\n + isaaclab-experimental==0.2.6 (from file:///kaggle/working/IsaacLab/source/isaaclab_experimental)\n + isaaclab-newton==9.1.4 (from file:///kaggle/working/IsaacLab/source/isaaclab_newton)\n + isaaclab-ov==5.1.5 (from file:///kaggle/working/IsaacLab/source/isaaclab_ov)\n + isaaclab-physx==8.0.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_physx)\n + isaaclab-ppisp==0.3.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_ppisp)\n + isaaclab-rl==1.5.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_rl)\n + isaaclab-tasks==25.2.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_tasks)\n + isaaclab-tasks-experimental==1.0.1 (from file:///kaggle/working/IsaacLab/source/isaaclab_tasks_experimental)\n + isaaclab-visualizers==2.1.0 (from file:///kaggle/working/IsaacLab/source/isaaclab_visualizers)\n + itsdangerous==2.2.0\n + janus==2.0.0\n + jedi==0.20.1\n + jinja2==3.1.6\n + jmespath==1.0.1\n + jsonschema==4.26.0\n + jsonschema-specifications==2025.9.1\n + jupyter-core==5.9.1\n + jupyterlab-widgets==3.0.17\n + kiwisolver==1.4.9\n + lazy-loader==0.6\n + libcoal==3.0.2\n + libpinocchio==3.9.0\n + llvmlite==0.46.0\n + loop-rate-limiters==1.2.0\n + markdown==3.11.2\n + markdown-it-py==4.2.0\n + markupsafe==3.0.4\n + matplotlib==3.10.8\n + matplotlib-inline==0.2.2\n + mdurl==0.1.2\n + meshio==5.3.5\n + ml-dtypes==0.6.0\n + mpmath==1.3.0\n + msgspec==0.22.0\n + mujoco==3.12.0\n + mujoco-warp==3.12.0\n + narwhals==2.27.1\n + nbformat==5.11.1\n + nest-asyncio==1.6.0\n + networkx==3.6.1\n + newton==1.6.1\n + newton-usd-schemas==0.6.0\n + nodeenv==1.11.0\n + numba==0.64.0\n + numpy==2.5.4\n + nvidia-cublas==13.1.0.3\n + nvidia-cuda-cupti==13.0.85\n + nvidia-cuda-nvrtc==13.0.88\n + nvidia-cuda-runtime==13.0.96\n + nvidia-cudnn-cu13==9.19.0.56\n + nvidia-cufft==12.0.0.61\n + nvidia-cufile==1.15.1.6\n + nvidia-curand==10.4.0.35\n + nvidia-cusolver==12.0.4.66\n + nvidia-cusparse==12.6.3.3\n + nvidia-cusparselt-cu13==0.8.0\n + nvidia-nccl-cu13==2.28.9\n + nvidia-nvjitlink==13.0.88\n + nvidia-nvshmem-cu13==3.4.5\n + nvidia-nvtx==13.0.85\n + omegaconf==2.4.1rc1\n + omniverseclient==2.74.0\n + onnx==1.23.2\n + onnx-ir==1.1.0\n + onnxscript==0.7.3.dev20261007\n + open3d==0.20.0\n + orjson==3.13.0\n + ovstage==0.2.1.385922\n + packaging==26.3\n + parso==0.8.7\n + pexpect==4.9.0\n + pillow==12.3.0\n + pin==3.9.0\n + pin-pink==3.3.0\n + platformdirs==4.13.5\n + plotly==7.1.0\n + pluggy==1.7.0\n + pre-commit==4.7.0\n + prettytable==3.18.0\n + prompt-toolkit==3.0.53\n + protobuf==7.37.0rc1\n + psutil==5.9.8\n + ptyprocess==0.7.0\n + pure-eval==0.2.4\n + pycollada==0.9.3\n + pydantic==2.14.1\n + pydantic-core==2.50.1\n + pyglet==2.1.19\n + pygments==2.21.0\n + pyopengl==4.0.0a8\n + pyopengl-accelerate==3.1.10\n + pyparsing==3.3.2\n + pytest==9.1.1\n + python-dateutil==2.9.0.post0\n + python-discovery==1.6.4\n + pyvers==0.2.3\n + pyyaml==6.0.3\n + qpsolvers==4.13.0\n + referencing==0.37.0\n + regex==2026.9.29\n + requests==2.32.3\n + resolve-robotics-uri-py==0.6.0\n + retrying==1.4.2\n + rich==14.3.4\n + rpds-py==2026.9.1\n + rsl-rl-lib==5.5.1\n + rtree==1.4.1\n + ruff==0.17.3\n + safetensors==0.9.0rc1\n + scipy==1.17.0\n + setuptools==81.0.0\n + shapely==2.2.0\n + shellingham==1.5.4\n + six==1.17.0\n + smmap==5.0.3\n + stack-data==0.6.3\n + starlette==1.10.0\n + sympy==1.14.0\n + tensorboard==2.21.0\n + tensorboard-data-server==0.7.2\n + tensordict==0.14.3\n + tokenizers==0.23.0rc0\n + torch==2.11.0+cu130\n + torchvision==0.26.0+cu130\n + tqdm==4.70.1\n + traitlets==5.16.1\n + transformers==5.10.4\n + trimesh==4.11.1\n + triton==3.6.0\n + typer==0.27.3\n + typing-extensions==4.16.0\n + typing-inspection==0.4.4\n + urllib3==2.8.0\n + usd-exchange==3.0.1\n + virtualenv==21.14.13\n + warp-lang==1.17.0\n + wcwidth==0.9.4\n + werkzeug==3.1.9\n + widgetsnbextension==4.0.16\n + zipp==4.1.2\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "-c",
+        "import json, gymnasium as gym; import fanuc_cell_lab.tasks; print(json.dumps([k for k in gym.registry if \"conveyor\" in k.lower() and \"m10id12\" in k.lower()]))"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 9.01,
+      "stdout_tail": "[\"Fanuc-Conveyor-PickPlace-M10id12-v0\"]\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--extra",
+        "ovphysx",
+        "isaaclab",
+        "train",
+        "--rl_library",
+        "rsl_rl",
+        "--task",
+        "Fanuc-Conveyor-PickPlace-M10id12-v0",
+        "--num_envs",
+        "64",
+        "--max_iterations",
+        "500",
+        "--seed",
+        "7",
+        "physics=ovphysx"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 442.713,
+      "stdout_tail": "pisode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0022\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.82s\n                           Time elapsed: 0:06:50\n                                    ETA: 0:00:04\n\n################################################################################\n\u001b[1m                           Learning iteration 495/500                           \u001b[0m \n\n                            Total steps: 761856 \n                       Steps per second: 1747 \n                        Collection time: 0.716s \n                          Learning time: 0.163s \n                        Mean value loss: 0.0030\n                    Mean surrogate loss: -0.0117\n                      Mean entropy loss: -6.4201\n                            Mean reward: 0.68\n                    Mean episode length: 301.51\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0011\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0868\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0023\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.88s\n                           Time elapsed: 0:06:51\n                                    ETA: 0:00:03\n\n################################################################################\n\u001b[1m                           Learning iteration 496/500                           \u001b[0m \n\n                            Total steps: 763392 \n                       Steps per second: 1843 \n                        Collection time: 0.684s \n                          Learning time: 0.149s \n                        Mean value loss: 0.0043\n                    Mean surrogate loss: -0.0116\n                      Mean entropy loss: -6.4233\n                            Mean reward: 0.68\n                    Mean episode length: 301.11\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0008\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0687\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0018\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.83s\n                           Time elapsed: 0:06:52\n                                    ETA: 0:00:02\n\n################################################################################\n\u001b[1m                           Learning iteration 497/500                           \u001b[0m \n\n                            Total steps: 764928 \n                       Steps per second: 1837 \n                        Collection time: 0.651s \n                          Learning time: 0.185s \n                        Mean value loss: 0.0028\n                    Mean surrogate loss: -0.0083\n                      Mean entropy loss: -6.4230\n                            Mean reward: 0.67\n                    Mean episode length: 298.25\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0009\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0652\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0017\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.84s\n                           Time elapsed: 0:06:53\n                                    ETA: 0:00:01\n\n################################################################################\n\u001b[1m                           Learning iteration 498/500                           \u001b[0m \n\n                            Total steps: 766464 \n                       Steps per second: 1941 \n                        Collection time: 0.659s \n                          Learning time: 0.132s \n                        Mean value loss: 0.0032\n                    Mean surrogate loss: -0.0081\n                      Mean entropy loss: -6.4239\n                            Mean reward: 0.68\n                    Mean episode length: 301.74\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0012\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0735\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0019\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.79s\n                           Time elapsed: 0:06:54\n                                    ETA: 0:00:00\n\n################################################################################\n\u001b[1m                           Learning iteration 499/500                           \u001b[0m \n\n                            Total steps: 768000 \n                       Steps per second: 2014 \n                        Collection time: 0.633s \n                          Learning time: 0.129s \n                        Mean value loss: 0.0029\n                    Mean surrogate loss: -0.0124\n                      Mean entropy loss: -6.4259\n                            Mean reward: 0.68\n                    Mean episode length: 300.08\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0016\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0964\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0024\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.76s\n                           Time elapsed: 0:06:54\n                                    ETA: 0:00:00\n\nTraining time: 421.08 seconds\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+      "stderr_tail": "warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 1 package in 1.35s\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--extra",
+        "ovphysx",
+        "--extra",
+        "video",
+        "isaaclab",
+        "play",
+        "--rl_library",
+        "rsl_rl",
+        "--task",
+        "Fanuc-Conveyor-PickPlace-M10id12-v0",
+        "--checkpoint",
+        "latest",
+        "--num_envs",
+        "1",
+        "--seed",
+        "107",
+        "--viz",
+        "newton_gl",
+        "--video",
+        "--video_length",
+        "400",
+        "physics=ovphysx"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 120.053,
+      "stdout_tail": "\u001b[0m\n\u2502 Physics       ovphysx                          \u2502      \u001b[0m \u001b[0m\u001b[38;2;118;185;0m\u259d\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u2584\u259d\u259c\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m \u001b[0m\u001b[38;2;118;185;0m\u2584\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u259b\u2580\u259a\u2584\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u259b\u2598\u001b[0m \u001b[0m\u001b[38;2;118;185;0m\u259d\u259c\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\n\u2502 Renderer      n/a (no camera sensors)          \u2502      \u001b[0m   \u001b[0m\u001b[38;2;118;185;0m\u2580\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u2584\u2584\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m     \u001b[0m\u001b[38;2;118;185;0m\u259b\u2580\u2580\u2597\u2584\u2584\u259f\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m    \u001b[0m\n\u2502 Visualizer    newton_gl                        \u2502      \u001b[0m      \u001b[0m\u001b[38;2;118;185;0m\u2580\u2580\u2580\u2599\u2584\u2584\u2584\u259f\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m          \u001b[0m\n\u2502 Device        cuda:0                           \u2502      \u001b[0m         \u001b[0m\u001b[38;2;118;185;0m\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u001b[0m\n\u2502 Environments  1                                \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\n[1/3] Launching simulation\n[WARNING]: The `policy` configuration is deprecated for rsl-rl >= 4.0.0. Please use, e.g., `actor` and `critic` model configurations instead. Older rsl-rl configurations will not be supported starting with Isaac Lab 3.1. Please migrate your configuration.\n[WARNING]: The `policy` configuration is used to infer the `actor` model configuration.\n[WARNING]: The `policy` configuration is used to infer the `critic` model configuration.\n[WARNING]: The `distribution_cfg` configuration is now used to specify the output distribution for stochastic policies. Consider updating the configuration to use `distribution_cfg` instead of `stochastic`, `init_noise_std`, `noise_std_type`, and `state_dependent_std` parameters. Older rsl-rl configurations will not be supported starting with Isaac Lab 3.1. Please migrate your configuration.\n[INFO] Loading experiment from directory: /kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place\n[INFO] Video recording enabled.\n        source: visualizer:newton_gl\n        output_dir: /kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/videos/play\n        video_length: 400\n        video_interval: 2000\n[2/3] Creating environment\n[INFO]: Base environment:\n\tEnvironment device    : cuda:0\n\tEnvironment seed      : 107\n\tPhysics step-size     : 0.01\n\tRendering step-size   : 0.02\n\tEnvironment step-size : 0.02\n[INFO]: Time taken for scene creation Last: 3.659375 s, Mean: 3.659375 s, Std: 0.000000 s, N: 1\n[INFO]: Scene manager:  <class InteractiveScene>\n\tNumber of environments: 1\n\tEnvironment spacing   : 3.0\n\tSource prim name      : /World/envs/env_0\n\tGlobal prim paths     : []\n\tReplicate physics     : True\n[WARNING] [NewtonVisualizer] No display found (DISPLAY is unset); the Newton viewer runs headless via EGL and no window will open. Run from a session with a display (or set DISPLAY, e.g. 'export DISPLAY=:0') to see the viewer.\nWarning: Could not get MSAA config, falling back to non-AA.\n[INFO]: Time taken for simulation start Last: 21.842396 s, Mean: 21.842396 s, Std: 0.000000 s, N: 1\n[INFO] Command Manager:  <CommandManager> contains 0 active terms.\n+----------------------+\n| Active Command Terms |\n+-------+------+-------+\n| Index | Name |  Type |\n+-------+------+-------+\n+-------+------+-------+\n\n[INFO] Event Manager:  <EventManager> contains 2 active terms.\n+-------------------------------------+\n| Active Event Terms in Mode: 'reset' |\n+------------+------------------------+\n|   Index    | Name                   |\n+------------+------------------------+\n|     0      | reset_part             |\n+------------+------------------------+\n+----------------------------------------------------+\n|       Active Event Terms in Mode: 'interval'       |\n+-------+------------------+-------------------------+\n| Index | Name             | Interval time range (s) |\n+-------+------------------+-------------------------+\n|   0   | advance_conveyor |       (0.02, 0.02)      |\n+-------+------------------+-------------------------+\n\n[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.\n+-----------------------+\n| Active Recorder Terms |\n+------------+----------+\n|   Index    | Name     |\n+------------+----------+\n+------------+----------+\n\n[INFO] Action Manager:  <ActionManager> contains 2 active terms.\n+--------------------------------+\n| Active Action Terms (shape: 8) |\n+-------+----------+-------------+\n| Index | Name     |   Dimension |\n+-------+----------+-------------+\n|   0   | arm      |           6 |\n|   1   | gripper  |           2 |\n+-------+----------+-------------+\n\n[INFO] Observation Manager: <ObservationManager> contains 1 groups.\n+------------------------------------------------------------+\n| Active Observation Terms in Group: 'policy' (shape: (22,)) |\n+----------+------------------------------------+------------+\n|  Index   | Name                               |   Shape    |\n+----------+------------------------------------+------------+\n|    0     | joint_position                     |    (8,)    |\n|    1     | joint_velocity                     |    (8,)    |\n|    2     | part_relative_to_tcp               |    (3,)    |\n|    3     | part_velocity                      |    (3,)    |\n+----------+------------------------------------+------------+\n\n[INFO] Termination Manager:  <TerminationManager> contains 3 active terms.\n+--------------------------------+\n|    Active Termination Terms    |\n+-------+-------------+----------+\n| Index | Name        | Time Out |\n+-------+-------------+----------+\n|   0   | time_out    |   True   |\n|   1   | success     |  False   |\n|   2   | object_lost |  False   |\n+-------+-------------+----------+\n\n[INFO] Reward Manager:  <RewardManager> contains 8 active terms.\n+-------------------------------+\n|      Active Reward Terms      |\n+-------+--------------+--------+\n| Index | Name         | Weight |\n+-------+--------------+--------+\n|   0   | reach        |    1.0 |\n|   1   | lift         |    4.0 |\n|   2   | grasp        |    8.0 |\n|   3   | place        |    4.0 |\n|   4   | release      |   20.0 |\n|   5   | lost         |  -10.0 |\n|   6   | action_rate  | -0.005 |\n|   7   | success_rate |    0.0 |\n+-------+--------------+--------+\n\n[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.\n+-------------------------+\n| Active Curriculum Terms |\n+-------------+-----------+\n|    Index    | Name      |\n+-------------+-----------+\n+-------------+-----------+\n\n[INFO]: Completed setting up the environment...\n[3/3] Loading policy\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n[INFO]: Loading model checkpoint from: /kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/model_499.pt\n--------------------------------------------------------------------------------\nResolved observation sets: \n\t actor :  ['policy']\n\t critic :  ['policy']\n--------------------------------------------------------------------------------\nActor Model: MLPModel(\n  (obs_normalizer): Identity()\n  (distribution): GaussianDistribution()\n  (mlp): MLP(\n    (0): Linear(in_features=22, out_features=256, bias=True)\n    (1): ELU(alpha=1.0)\n    (2): Linear(in_features=256, out_features=128, bias=True)\n    (3): ELU(alpha=1.0)\n    (4): Linear(in_features=128, out_features=64, bias=True)\n    (5): ELU(alpha=1.0)\n    (6): Linear(in_features=64, out_features=8, bias=True)\n  )\n)\nCritic Model: MLPModel(\n  (obs_normalizer): Identity()\n  (mlp): MLP(\n    (0): Linear(in_features=22, out_features=256, bias=True)\n    (1): ELU(alpha=1.0)\n    (2): Linear(in_features=256, out_features=128, bias=True)\n    (3): ELU(alpha=1.0)\n    (4): Linear(in_features=128, out_features=64, bias=True)\n    (5): ELU(alpha=1.0)\n    (6): Linear(in_features=64, out_features=1, bias=True)\n  )\n)\n[INFO] Policy playback is running, press Ctrl+C to exit...\n",
+      "stderr_tail": "   Building moviepy==1.0.3\nDownloading imageio-ffmpeg (28.1MiB)\n Downloaded imageio-ffmpeg\n      Built moviepy==1.0.3\nwarning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 4 packages in 65ms\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/config_defaults.py:47: SyntaxWarning: invalid escape sequence '\\P'\n  IMAGEMAGICK_BINARY = r\"C:\\Program Files\\ImageMagick-6.8.8-Q16\\magick.exe\"\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/video/io/ffmpeg_reader.py:294: SyntaxWarning: invalid escape sequence '\\d'\n  lines_video = [l for l in lines if ' Video: ' in l and re.search('\\d+x\\d+', l)]\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/video/io/ffmpeg_reader.py:367: SyntaxWarning: invalid escape sequence '\\d'\n  rotation_lines = [l for l in lines if 'rotate          :' in l and re.search('\\d+$', l)]\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/video/io/ffmpeg_reader.py:370: SyntaxWarning: invalid escape sequence '\\d'\n  match = re.search('\\d+$', rotation_line)\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\nWarp CUDA error 304: OS call failed or operation not supported on this OS (in function wp_cuda_graphics_register_gl_buffer, /builds/omniverse/warp/warp/native/warp.cu:5777)\nWarp UserWarning: Could not register GL buffer since CUDA/OpenGL interoperability is not available. Falling back to copy operations between the Warp array and the OpenGL buffer.\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--extra",
+        "ovphysx",
+        "isaaclab",
+        "benchmark",
+        "play",
+        "--rl_library",
+        "rsl_rl",
+        "--task",
+        "Fanuc-Conveyor-PickPlace-M10id12-v0",
+        "--checkpoint",
+        "latest",
+        "--num_envs",
+        "16",
+        "--num_steps",
+        "800",
+        "--seed",
+        "101",
+        "--viz",
+        "none",
+        "--benchmark_formatter",
+        "schema,summary",
+        "--output_path",
+        "/kaggle/working/policy-evaluation",
+        "physics=ovphysx"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 44.953,
+      "stdout_tail": "--------------------+\n| Index | Name             | Interval time range (s) |\n+-------+------------------+-------------------------+\n|   0   | advance_conveyor |       (0.02, 0.02)      |\n+-------+------------------+-------------------------+\n\n[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.\n+-----------------------+\n| Active Recorder Terms |\n+------------+----------+\n|   Index    | Name     |\n+------------+----------+\n+------------+----------+\n\n[INFO] Action Manager:  <ActionManager> contains 2 active terms.\n+--------------------------------+\n| Active Action Terms (shape: 8) |\n+-------+----------+-------------+\n| Index | Name     |   Dimension |\n+-------+----------+-------------+\n|   0   | arm      |           6 |\n|   1   | gripper  |           2 |\n+-------+----------+-------------+\n\n[INFO] Observation Manager: <ObservationManager> contains 1 groups.\n+------------------------------------------------------------+\n| Active Observation Terms in Group: 'policy' (shape: (22,)) |\n+----------+------------------------------------+------------+\n|  Index   | Name                               |   Shape    |\n+----------+------------------------------------+------------+\n|    0     | joint_position                     |    (8,)    |\n|    1     | joint_velocity                     |    (8,)    |\n|    2     | part_relative_to_tcp               |    (3,)    |\n|    3     | part_velocity                      |    (3,)    |\n+----------+------------------------------------+------------+\n\n[INFO] Termination Manager:  <TerminationManager> contains 3 active terms.\n+--------------------------------+\n|    Active Termination Terms    |\n+-------+-------------+----------+\n| Index | Name        | Time Out |\n+-------+-------------+----------+\n|   0   | time_out    |   True   |\n|   1   | success     |  False   |\n|   2   | object_lost |  False   |\n+-------+-------------+----------+\n\n[INFO] Reward Manager:  <RewardManager> contains 8 active terms.\n+-------------------------------+\n|      Active Reward Terms      |\n+-------+--------------+--------+\n| Index | Name         | Weight |\n+-------+--------------+--------+\n|   0   | reach        |    1.0 |\n|   1   | lift         |    4.0 |\n|   2   | grasp        |    8.0 |\n|   3   | place        |    4.0 |\n|   4   | release      |   20.0 |\n|   5   | lost         |  -10.0 |\n|   6   | action_rate  | -0.005 |\n|   7   | success_rate |    0.0 |\n+-------+--------------+--------+\n\n[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.\n+-------------------------+\n| Active Curriculum Terms |\n+-------------+-----------+\n|    Index    | Name      |\n+-------------+-----------+\n+-------------+-----------+\n\n[INFO]: Completed setting up the environment...\n--------------------------------------------------------------------------------\nResolved observation sets: \n\t actor :  ['policy']\n\t critic :  ['policy']\n--------------------------------------------------------------------------------\nActor Model: MLPModel(\n  (obs_normalizer): Identity()\n  (distribution): GaussianDistribution()\n  (mlp): MLP(\n    (0): Linear(in_features=22, out_features=256, bias=True)\n    (1): ELU(alpha=1.0)\n    (2): Linear(in_features=256, out_features=128, bias=True)\n    (3): ELU(alpha=1.0)\n    (4): Linear(in_features=128, out_features=64, bias=True)\n    (5): ELU(alpha=1.0)\n    (6): Linear(in_features=64, out_features=8, bias=True)\n  )\n)\nCritic Model: MLPModel(\n  (obs_normalizer): Identity()\n  (mlp): MLP(\n    (0): Linear(in_features=22, out_features=256, bias=True)\n    (1): ELU(alpha=1.0)\n    (2): Linear(in_features=256, out_features=128, bias=True)\n    (3): ELU(alpha=1.0)\n    (4): Linear(in_features=128, out_features=64, bias=True)\n    (5): ELU(alpha=1.0)\n    (6): Linear(in_features=64, out_features=1, bias=True)\n  )\n)\nResults written to: /kaggle/working/policy-evaluation/benchmark_play_Fanuc-Conveyor-PickPlace-M10id12-v0_2026-10-27_02-17-50-894499_ea013fac_summary.json\n\n|------------------------------------------------------------------------------------|\n|                                   Summary Report                                   |\n|------------------------------------------------------------------------------------|\n| workflow_name: benchmark_play                                                      |\n| timestamp: 2026-10-27T02:17:50.894599                                              |\n| task: Fanuc-Conveyor-PickPlace-M10id12-v0                                          |\n| num_envs: 16                                                                       |\n| num_cpus: 4                                                                        |\n| commit: e3f7d9ff                                                                   |\n| branch: HEAD                                                                       |\n| gpu_name: Tesla T4                                                                 |\n| gpu_total_memory_gb: 14.56                                                         |\n|------------------------------------------------------------------------------------|\n| Phase: runtime                                                                     |\n| Collection:                                                                        |\n|   Collection FPS (mean/std/max): 654.02 / 74.59 / 826.31 FPS                       |\n| Throughput:                                                                        |\n|   Total FPS (mean/std/max): 654.02 / 74.59 / 826.31 FPS                            |\n|   Environment Step Host-Return FPS (mean/std/max): 655.85 / 75.80 / 840.68 FPS     |\n| Other:                                                                             |\n|   Iteration Time (mean/std/max): 24.81 / 3.07 / 40.21 ms                           |\n|   Iterations per Second (mean/std/max): 40.88 / 4.66 / 51.64 iterations/s          |\n|------------------------------------------------------------------------------------|\n| Phase: startup                                                                     |\n| App Launch Time: 0.82 ms                                                           |\n| Scene Creation Time: 15710.35 ms                                                   |\n| Simulation Start Time: 298.63 ms                                                   |\n| Total Start Time (Launch to Train): 16009.80 ms                                    |\n|------------------------------------------------------------------------------------|\n| Phase: play                                                                        |\n| Mean Reward: 0.74 float                                                            |\n| Std Reward: 0.23 float                                                             |\n| Max Reward: 1.20 float                                                             |\n| Mean Episode Length: 314.94 steps                                                  |\n| Std Episode Length: 76.32 steps                                                    |\n| Max Episode Length: 471.00 steps                                                   |\n| success_rate: 0.00 float                                                           |\n|------------------------------------------------------------------------------------|\n| System:                                                                            |\n| cpu_name: Intel(R) Xeon(R) CPU @ 2.00GHz                                           |\n| physical_cores: 4                                                                  |\n| total_ram_gb: 31.35                                                                |\n| gpu_device_count: 2                                                                |\n| cuda_version: 13.0                                                                 |\n|------------------------------------------------------------------------------------|\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+      "stderr_tail": "Kit is not running. Kit related measurements will not be available.\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\n"
+    }
+  ],
+  "python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]",
+  "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+  "gpu_query_exit": 0,
+  "gpus": [
+    "Tesla T4, 15360 MiB",
+    "Tesla T4, 15360 MiB"
+  ],
+  "driver_versions": [
+    "580.178.04"
+  ],
+  "gpu_count": 2,
+  "kaggle_t4_detected": true,
+  "torch": "2.11.0+cu128",
+  "torch_cuda_devices": 2,
+  "compute_capabilities": [
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      5
+    ]
+  ],
+  "isaaclab_linux_driver_compatible": true,
+  "isaaclab_gpu_arch_compatible": true,
+  "timings_seconds": {
+    "gpu_preflight": 8.19,
+    "local_setup": 0.002,
+    "local_tests": 2.953
+  },
+  "isaaclab_smoke_exit": null,
+  "isaaclab_smoke_skip": "Previously validated; full custom baseline runs below.",
+  "urdf_conversion_exit": 0,
+  "urdf_conversion_stdout": "--------------------------------------------------------------------------------\n--------------------------------------------------------------------------------\nInput URDF file: /kaggle/working/fanuc-cell/assets/m10id12_robot.urdf\nURDF importer config:\n    asset_path: /kaggle/working/fanuc-cell/assets/m10id12_robot.urdf\n    usd_dir: /kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data\n    usd_file_name: None\n    force_usd_conversion: True\n    make_instanceable: True\n    physics_variant: physics\n    fix_base: False\n    root_link_name: None\n    link_density: 0.0\n    merge_fixed_joints: False\n    convert_mimic_joints_to_normal_joints: False\n    joint_drive: \n        drive_type: force\n        target_type: none\n        gains: \n            stiffness: 0.0\n            damping: 0.0\n    collision_from_visuals: False\n    collision_type: Convex Hull\n    self_collision: False\n    replace_cylinders_with_capsules: False\n    merge_mesh: False\n    ros_package_paths: []\n    robot_type: Default\n    run_asset_transformer: True\n    run_multi_physics_conversion: True\n    debug_mode: False\n--------------------------------------------------------------------------------\n--------------------------------------------------------------------------------\nURDF importer output:\nGenerated USD file: /kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data/m10id12_robot/m10id12_robot.usda\n--------------------------------------------------------------------------------\n--------------------------------------------------------------------------------\n[INFO] Using Python: \"/kaggle/working/IsaacLab/.venv/bin/python\"\n",
+  "urdf_conversion_stderr": "Downloading ovphysx (132.9MiB)\nDownloading usd-optimize (59.1MiB)\n Downloaded usd-optimize\n Downloaded ovphysx\nwarning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 10 packages in 459ms\nStatus: in urdf_usd_converter._impl.convert.convert at line 63 of /kaggle/working/IsaacLab/.venv/lib/python3.12/site-packages/urdf_usd_converter/_impl/convert.py -- Converting /kaggle/working/fanuc-cell/assets/m10id12_robot.urdf into /tmp/urdf_import_m10id12_robot_bkxyfuwt/usdex_m10id12_robot\nStatus: in saveStage at line 263 of /builds/omniverse/usd-exchange/usd-exchange/source/core/library/StageAlgo.cpp -- Saving \"stage with rootLayer @/tmp/tmp4dz33a8f/Payload/MaterialsLibrary.usdc@, sessionLayer @anon:0x3cbc6d10:MaterialsLibrary-session.usda@\" with comment \"Material Library for m10id12_robot. \"\nStatus: in exportLayer at line 98 of /builds/omniverse/usd-exchange/usd-exchange/source/core/library/LayerAlgo.cpp -- Exporting \"/tmp/urdf_import_m10id12_robot_bkxyfuwt/usdex_m10id12_robot/m10id12_robot.usdc\" with comment \"\"\nStiffness and damping not available joint /m10id12_robot/Physics/J1, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J2, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J3, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J4, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J5, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/J6, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/gripper_left, actuator will be created without gain parameters\nStiffness and damping not available joint /m10id12_robot/Physics/gripper_right, actuator will be created without gain parameters\n",
+  "usd_contact_patch": {
+    "contact_report_bodies": 10
+  },
+  "converted_usd": "/kaggle/working/fanuc_cell_lab/src/fanuc_cell_lab/assets/data/m10id12_robot/m10id12_robot.usd",
+  "usd_joint_counts": {
+    "revolute_joints": 6,
+    "prismatic_joints": 2
+  },
+  "usd_rigid_bodies": [
+    "/m10id12_robot/Geometry/base_link",
+    "/m10id12_robot/Geometry/base_link/link_1",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/left_finger",
+    "/m10id12_robot/Geometry/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/right_finger"
+  ],
+  "ppo_nan_probe_exit": 0,
+  "ppo_nan_probe_stdout": "[INFO]: Base environment:\n\tEnvironment device    : cuda:0\n\tEnvironment seed      : None\n\tPhysics step-size     : 0.01\n\tRendering step-size   : 0.02\n\tEnvironment step-size : 0.02\n[INFO]: Time taken for scene creation Last: 3.456238 s, Mean: 3.456238 s, Std: 0.000000 s, N: 1\n[INFO]: Scene manager:  <class InteractiveScene>\n\tNumber of environments: 64\n\tEnvironment spacing   : 3.0\n\tSource prim name      : /World/envs/env_0\n\tGlobal prim paths     : []\n\tReplicate physics     : True\n[INFO]: Time taken for simulation start Last: 32.075237 s, Mean: 32.075237 s, Std: 0.000000 s, N: 1\n[INFO] Command Manager:  <CommandManager> contains 0 active terms.\n+----------------------+\n| Active Command Terms |\n+-------+------+-------+\n| Index | Name |  Type |\n+-------+------+-------+\n+-------+------+-------+\n\n[INFO] Event Manager:  <EventManager> contains 2 active terms.\n+-------------------------------------+\n| Active Event Terms in Mode: 'reset' |\n+------------+------------------------+\n|   Index    | Name                   |\n+------------+------------------------+\n|     0      | reset_part             |\n+------------+------------------------+\n+----------------------------------------------------+\n|       Active Event Terms in Mode: 'interval'       |\n+-------+------------------+-------------------------+\n| Index | Name             | Interval time range (s) |\n+-------+------------------+-------------------------+\n|   0   | advance_conveyor |       (0.02, 0.02)      |\n+-------+------------------+-------------------------+\n\n[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.\n+-----------------------+\n| Active Recorder Terms |\n+------------+----------+\n|   Index    | Name     |\n+------------+----------+\n+------------+----------+\n\n[INFO] Action Manager:  <ActionManager> contains 2 active terms.\n+--------------------------------+\n| Active Action Terms (shape: 8) |\n+-------+----------+-------------+\n| Index | Name     |   Dimension |\n+-------+----------+-------------+\n|   0   | arm      |           6 |\n|   1   | gripper  |           2 |\n+-------+----------+-------------+\n\n[INFO] Observation Manager: <ObservationManager> contains 1 groups.\n+------------------------------------------------------------+\n| Active Observation Terms in Group: 'policy' (shape: (22,)) |\n+----------+------------------------------------+------------+\n|  Index   | Name                               |   Shape    |\n+----------+------------------------------------+------------+\n|    0     | joint_position                     |    (8,)    |\n|    1     | joint_velocity                     |    (8,)    |\n|    2     | part_relative_to_tcp               |    (3,)    |\n|    3     | part_velocity                      |    (3,)    |\n+----------+------------------------------------+------------+\n\n[INFO] Termination Manager:  <TerminationManager> contains 3 active terms.\n+--------------------------------+\n|    Active Termination Terms    |\n+-------+-------------+----------+\n| Index | Name        | Time Out |\n+-------+-------------+----------+\n|   0   | time_out    |   True   |\n|   1   | success     |  False   |\n|   2   | object_lost |  False   |\n+-------+-------------+----------+\n\n[INFO] Reward Manager:  <RewardManager> contains 8 active terms.\n+-------------------------------+\n|      Active Reward Terms      |\n+-------+--------------+--------+\n| Index | Name         | Weight |\n+-------+--------------+--------+\n|   0   | reach        |    1.0 |\n|   1   | lift         |    4.0 |\n|   2   | grasp        |    8.0 |\n|   3   | place        |    4.0 |\n|   4   | release      |   20.0 |\n|   5   | lost         |  -10.0 |\n|   6   | action_rate  | -0.005 |\n|   7   | success_rate |    0.0 |\n+-------+--------------+--------+\n\n[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.\n+-------------------------+\n| Active Curriculum Terms |\n+-------------+-----------+\n|    Index    | Name      |\n+-------------+-----------+\n+-------------+-----------+\n\n[INFO]: Completed setting up the environment...\n{\"finite\": true, \"steps\": 24, \"num_envs\": 64}\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+  "ppo_nan_probe_stderr": "Seed not set for the environment. The environment creation may not be deterministic.\n",
+  "scripted_baseline_exit": 0,
+  "scripted_baseline_stdout": "-2.132253228148695e-11,\n        0.03490716964006424,\n        -0.0488402284681797,\n        2.83674871787154e-11,\n        0.03848181292414665,\n        8.254359001869105e-12,\n        8.661744065052712e-12,\n        9.40113351749483e-12\n      ],\n      \"tcp_position_m\": [\n        1.2796748876571655,\n        -3.6597107566649356e-08,\n        0.5952816009521484\n      ],\n      \"part_position_m\": [\n        0.8332400918006897,\n        -1.77017000169144e-07,\n        0.15000095963478088\n      ],\n      \"part_tcp_distance_m\": 0.6305385828018188,\n      \"gripper_joint_positions_rad\": [\n        8.661744065052712e-12,\n        9.40113351749483e-12\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": false,\n      \"capture_anchor_part_position_m\": null\n    },\n    {\n      \"time_s\": 1.8,\n      \"phase\": \"approach\",\n      \"target_arm_joints_rad\": [\n        1.287380032130174e-05,\n        1.8727629833306345,\n        -1.9697575259015188,\n        -4.578646014942219e-05,\n        0.09705574595492955,\n        4.523914599557232e-05\n      ],\n      \"actual_joints_rad\": [\n        4.193415861664107e-06,\n        1.6599549055099487,\n        -1.764018177986145,\n        -3.0784889531787485e-05,\n        0.10383667051792145,\n        2.863322697521653e-05,\n        7.943332320792251e-07,\n        -5.509283584892444e-10\n      ],\n      \"tcp_position_m\": [\n        0.927287220954895,\n        3.280359578639036e-06,\n        0.36233505606651306\n      ],\n      \"part_position_m\": [\n        0.9575203061103821,\n        1.127285031543579e-05,\n        0.15000085532665253\n      ],\n      \"part_tcp_distance_m\": 0.21447576582431793,\n      \"gripper_joint_positions_rad\": [\n        7.943332320792251e-07,\n        -5.509283584892444e-10\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": false,\n      \"capture_anchor_part_position_m\": null\n    },\n    {\n      \"time_s\": 3.0,\n      \"phase\": \"grasp\",\n      \"target_arm_joints_rad\": [\n        0.0,\n        1.5966156218061827,\n        -1.4550744192492506,\n        0.0,\n        -0.1413250198287471,\n        0.0\n      ],\n      \"actual_joints_rad\": [\n        1.2856946341344155e-05,\n        1.5936660766601562,\n        -1.6784586906433105,\n        -3.587817218431155e-06,\n        0.05772574245929718,\n        3.785442913795123e-06,\n        0.001979335444048047,\n        0.001979154534637928\n      ],\n      \"tcp_position_m\": [\n        0.9498136043548584,\n        1.2088363291695714e-05,\n        0.3510141670703888\n      ],\n      \"part_position_m\": [\n        1.0403738021850586,\n        1.8842525605577976e-05,\n        0.15000085532665253\n      ],\n      \"part_tcp_distance_m\": 0.2204710841178894,\n      \"gripper_joint_positions_rad\": [\n        0.001979335444048047,\n        0.001979154534637928\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": false,\n      \"capture_anchor_part_position_m\": null\n    },\n    {\n      \"time_s\": 3.5,\n      \"phase\": \"hold\",\n      \"target_arm_joints_rad\": [\n        1.990832764987892e-05,\n        1.5839255498608318,\n        -1.4425115318628925,\n        3.4116612973234294e-05,\n        -0.1412888987519653,\n        -3.2929187148302344e-05\n      ],\n      \"actual_joints_rad\": [\n        0.000596784520894289,\n        1.5882569551467896,\n        -1.4383108615875244,\n        6.73553004162386e-05,\n        -0.1416787952184677,\n        7.535783515777439e-05,\n        0.005434870254248381,\n        0.006592414807528257\n      ],\n      \"tcp_position_m\": [\n        0.945654034614563,\n        0.0005625127232633531,\n        0.16204074025154114\n      ],\n      \"part_position_m\": [\n        1.0467053651809692,\n        0.0012107109650969505,\n        0.14999961853027344\n      ],\n      \"part_tcp_distance_m\": 0.10176827013492584,\n      \"gripper_joint_positions_rad\": [\n        0.005434870254248381,\n        0.006592414807528257\n      ],\n      \"left_contact_force_n\": 13.130148887634277,\n      \"right_contact_force_n\": 10.783714294433594,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    },\n    {\n      \"time_s\": 4.7,\n      \"phase\": \"lift\",\n      \"target_arm_joints_rad\": [\n        1.9578074141472063e-05,\n        1.5920141849748954,\n        -1.7076231150474814,\n        -2.9766661404825317e-05,\n        0.11564010403132002,\n        2.8828907589905647e-05\n      ],\n      \"actual_joints_rad\": [\n        2.7271697035757825e-05,\n        1.604616403579712,\n        -1.4686784744262695,\n        -5.9904805311816745e-06,\n        -0.09043072164058685,\n        1.160702777269762e-05,\n        0.006022775545716286,\n        0.006010590121150017\n      ],\n      \"tcp_position_m\": [\n        0.9417973160743713,\n        2.5514702429063618e-05,\n        0.16628919541835785\n      ],\n      \"part_position_m\": [\n        1.0438381433486938,\n        2.2825381165603176e-05,\n        0.15086151659488678\n      ],\n      \"part_tcp_distance_m\": 0.1032005026936531,\n      \"gripper_joint_positions_rad\": [\n        0.006022775545716286,\n        0.006010590121150017\n      ],\n      \"left_contact_force_n\": 11.95504379272461,\n      \"right_contact_force_n\": 11.847838401794434,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    },\n    {\n      \"time_s\": 7.5,\n      \"phase\": \"transfer\",\n      \"target_arm_joints_rad\": [\n        -0.8350523024258754,\n        1.4664219901437185,\n        -1.75083240685012,\n        1.3189121888751791,\n        0.8701003829675331,\n        -1.1931197745769895\n      ],\n      \"actual_joints_rad\": [\n        -0.022993624210357666,\n        1.5782097578048706,\n        -1.692963719367981,\n        0.19388563930988312,\n        0.18026067316532135,\n        -0.1735212355852127,\n        0.005142537411302328,\n        0.006796662230044603\n      ],\n      \"tcp_position_m\": [\n        0.9519333243370056,\n        -0.015672745183110237,\n        0.3581383228302002\n      ],\n      \"part_position_m\": [\n        1.0470072031021118,\n        -0.012499511241912842,\n        0.31128692626953125\n      ],\n      \"part_tcp_distance_m\": 0.10603850334882736,\n      \"gripper_joint_positions_rad\": [\n        0.005142537411302328,\n        0.006796662230044603\n      ],\n      \"left_contact_force_n\": 23.92414093017578,\n      \"right_contact_force_n\": 11.098369598388672,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    },\n    {\n      \"time_s\": 8.3,\n      \"phase\": \"release\",\n      \"target_arm_joints_rad\": [\n        -0.8350722516612739,\n        1.5630313059788037,\n        -1.5888995421896883,\n        1.5464881399918258,\n        0.8350775307773379,\n        -1.5350358506606097\n      ],\n      \"actual_joints_rad\": [\n        -0.833599865436554,\n        1.5682538747787476,\n        -1.58521568775177,\n        1.5465306043624878,\n        0.8357580304145813,\n        -1.5180853605270386,\n        0.0029073520563542843,\n        0.0045813871547579765\n      ],\n      \"tcp_position_m\": [\n        0.704794704914093,\n        -0.5776625275611877,\n        0.2920387387275696\n      ],\n      \"part_position_m\": [\n        0.8147843480110168,\n        -0.5768301486968994,\n        0.2878641188144684\n      ],\n      \"part_tcp_distance_m\": 0.11007198691368103,\n      \"gripper_joint_positions_rad\": [\n        0.0029073520563542843,\n        0.0045813871547579765\n      ],\n      \"left_contact_force_n\": 0.0,\n      \"right_contact_force_n\": 0.0,\n      \"belt_capture_paused\": true,\n      \"capture_anchor_part_position_m\": [\n        1.0431371927261353,\n        1.8960969100589864e-05,\n        0.14999984204769135\n      ]\n    }\n  ],\n  \"success\": true\n}\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+  "scripted_baseline_stderr": "Seed not set for the environment. The environment creation may not be deterministic.\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\n",
+  "scripted_baseline": {
+    "task_id": "Fanuc-Conveyor-PickPlace-M10id12-v0",
+    "physics": "Isaac Lab OvPhysX",
+    "seed": 23,
+    "start_part_x_m": 0.8318591713905334,
+    "belt_speed_m_s": 0.0690445825457573,
+    "intercept_x_m": 1.0389929190278053,
+    "simulated_steps": 445,
+    "scripted_grasp_sensor_passed": true,
+    "peak_left_finger_normal_force_n": 957.3468627929688,
+    "peak_right_finger_normal_force_n": 768.3396606445312,
+    "bilateral_contact_steps": 260,
+    "closed_bilateral_contact_steps": 253,
+    "belt_capture_paused": true,
+    "belt_capture_step": 154,
+    "capture_anchor_part_position_m": [
+      1.0431371927261353,
+      1.8960969100589864e-05,
+      0.14999984204769135
+    ],
+    "final_part_position_m": [
+      0.8294838666915894,
+      -0.576591968536377,
+      0.27999985218048096
+    ],
+    "final_tcp_position_m": [
+      0.7054157853126526,
+      -0.5804240703582764,
+      0.48885682225227356
+    ],
+    "robot_joint_names": [
+      "J1",
+      "J2",
+      "J3",
+      "J4",
+      "J5",
+      "J6",
+      "gripper_left",
+      "gripper_right"
+    ],
+    "final_robot_joints_rad": [
+      -0.8351387977600098,
+      1.4726803302764893,
+      -1.7433282136917114,
+      1.3251839876174927,
+      0.8702645301818848,
+      -1.2003644704818726,
+      -1.4594600372674904e-07,
+      -7.592902306896576e-09
+    ],
+    "phase_snapshots": [
+      {
+        "time_s": 0.0,
+        "phase": "home",
+        "target_arm_joints_rad": [
+          0.0,
+          0.7755180890878866,
+          -1.3810588996832525,
+          0.0,
+          0.6055434573368432,
+          0.0
+        ],
+        "actual_joints_rad": [
+          -2.132253228148695e-11,
+          0.03490716964006424,
+          -0.0488402284681797,
+          2.83674871787154e-11,
+          0.03848181292414665,
+          8.254359001869105e-12,
+          8.661744065052712e-12,
+          9.40113351749483e-12
+        ],
+        "tcp_position_m": [
+          1.2796748876571655,
+          -3.6597107566649356e-08,
+          0.5952816009521484
+        ],
+        "part_position_m": [
+          0.8332400918006897,
+          -1.77017000169144e-07,
+          0.15000095963478088
+        ],
+        "part_tcp_distance_m": 0.6305385828018188,
+        "gripper_joint_positions_rad": [
+          8.661744065052712e-12,
+          9.40113351749483e-12
+        ],
+        "left_contact_force_n": 0.0,
+        "right_contact_force_n": 0.0,
+        "belt_capture_paused": false,
+        "capture_anchor_part_position_m": null
+      },
+      {
+        "time_s": 1.8,
+        "phase": "approach",
+        "target_arm_joints_rad": [
+          1.287380032130174e-05,
+          1.8727629833306345,
+          -1.9697575259015188,
+          -4.578646014942219e-05,
+          0.09705574595492955,
+          4.523914599557232e-05
+        ],
+        "actual_joints_rad": [
+          4.193415861664107e-06,
+          1.6599549055099487,
+          -1.764018177986145,
+          -3.0784889531787485e-05,
+          0.10383667051792145,
+          2.863322697521653e-05,
+          7.943332320792251e-07,
+          -5.509283584892444e-10
+        ],
+        "tcp_position_m": [
+          0.927287220954895,
+          3.280359578639036e-06,
+          0.36233505606651306
+        ],
+        "part_position_m": [
+          0.9575203061103821,
+          1.127285031543579e-05,
+          0.15000085532665253
+        ],
+        "part_tcp_distance_m": 0.21447576582431793,
+        "gripper_joint_positions_rad": [
+          7.943332320792251e-07,
+          -5.509283584892444e-10
+        ],
+        "left_contact_force_n": 0.0,
+        "right_contact_force_n": 0.0,
+        "belt_capture_paused": false,
+        "capture_anchor_part_position_m": null
+      },
+      {
+        "time_s": 3.0,
+        "phase": "grasp",
+        "target_arm_joints_rad": [
+          0.0,
+          1.5966156218061827,
+          -1.4550744192492506,
+          0.0,
+          -0.1413250198287471,
+          0.0
+        ],
+        "actual_joints_rad": [
+          1.2856946341344155e-05,
+          1.5936660766601562,
+          -1.6784586906433105,
+          -3.587817218431155e-06,
+          0.05772574245929718,
+          3.785442913795123e-06,
+          0.001979335444048047,
+          0.001979154534637928
+        ],
+        "tcp_position_m": [
+          0.9498136043548584,
+          1.2088363291695714e-05,
+          0.3510141670703888
+        ],
+        "part_position_m": [
+          1.0403738021850586,
+          1.8842525605577976e-05,
+          0.15000085532665253
+        ],
+        "part_tcp_distance_m": 0.2204710841178894,
+        "gripper_joint_positions_rad": [
+          0.001979335444048047,
+          0.001979154534637928
+        ],
+        "left_contact_force_n": 0.0,
+        "right_contact_force_n": 0.0,
+        "belt_capture_paused": false,
+        "capture_anchor_part_position_m": null
+      },
+      {
+        "time_s": 3.5,
+        "phase": "hold",
+        "target_arm_joints_rad": [
+          1.990832764987892e-05,
+          1.5839255498608318,
+          -1.4425115318628925,
+          3.4116612973234294e-05,
+          -0.1412888987519653,
+          -3.2929187148302344e-05
+        ],
+        "actual_joints_rad": [
+          0.000596784520894289,
+          1.5882569551467896,
+          -1.4383108615875244,
+          6.73553004162386e-05,
+          -0.1416787952184677,
+          7.535783515777439e-05,
+          0.005434870254248381,
+          0.006592414807528257
+        ],
+        "tcp_position_m": [
+          0.945654034614563,
+          0.0005625127232633531,
+          0.16204074025154114
+        ],
+        "part_position_m": [
+          1.0467053651809692,
+          0.0012107109650969505,
+          0.14999961853027344
+        ],
+        "part_tcp_distance_m": 0.10176827013492584,
+        "gripper_joint_positions_rad": [
+          0.005434870254248381,
+          0.006592414807528257
+        ],
+        "left_contact_force_n": 13.130148887634277,
+        "right_contact_force_n": 10.783714294433594,
+        "belt_capture_paused": true,
+        "capture_anchor_part_position_m": [
+          1.0431371927261353,
+          1.8960969100589864e-05,
+          0.14999984204769135
+        ]
+      },
+      {
+        "time_s": 4.7,
+        "phase": "lift",
+        "target_arm_joints_rad": [
+          1.9578074141472063e-05,
+          1.5920141849748954,
+          -1.7076231150474814,
+          -2.9766661404825317e-05,
+          0.11564010403132002,
+          2.8828907589905647e-05
+        ],
+        "actual_joints_rad": [
+          2.7271697035757825e-05,
+          1.604616403579712,
+          -1.4686784744262695,
+          -5.9904805311816745e-06,
+          -0.09043072164058685,
+          1.160702777269762e-05,
+          0.006022775545716286,
+          0.006010590121150017
+        ],
+        "tcp_position_m": [
+          0.9417973160743713,
+          2.5514702429063618e-05,
+          0.16628919541835785
+        ],
+        "part_position_m": [
+          1.0438381433486938,
+          2.2825381165603176e-05,
+          0.15086151659488678
+        ],
+        "part_tcp_distance_m": 0.1032005026936531,
+        "gripper_joint_positions_rad": [
+          0.006022775545716286,
+          0.006010590121150017
+        ],
+        "left_contact_force_n": 11.95504379272461,
+        "right_contact_force_n": 11.847838401794434,
+        "belt_capture_paused": true,
+        "capture_anchor_part_position_m": [
+          1.0431371927261353,
+          1.8960969100589864e-05,
+          0.14999984204769135
+        ]
+      },
+      {
+        "time_s": 7.5,
+        "phase": "transfer",
+        "target_arm_joints_rad": [
+          -0.8350523024258754,
+          1.4664219901437185,
+          -1.75083240685012,
+          1.3189121888751791,
+          0.8701003829675331,
+          -1.1931197745769895
+        ],
+        "actual_joints_rad": [
+          -0.022993624210357666,
+          1.5782097578048706,
+          -1.692963719367981,
+          0.19388563930988312,
+          0.18026067316532135,
+          -0.1735212355852127,
+          0.005142537411302328,
+          0.006796662230044603
+        ],
+        "tcp_position_m": [
+          0.9519333243370056,
+          -0.015672745183110237,
+          0.3581383228302002
+        ],
+        "part_position_m": [
+          1.0470072031021118,
+          -0.012499511241912842,
+          0.31128692626953125
+        ],
+        "part_tcp_distance_m": 0.10603850334882736,
+        "gripper_joint_positions_rad": [
+          0.005142537411302328,
+          0.006796662230044603
+        ],
+        "left_contact_force_n": 23.92414093017578,
+        "right_contact_force_n": 11.098369598388672,
+        "belt_capture_paused": true,
+        "capture_anchor_part_position_m": [
+          1.0431371927261353,
+          1.8960969100589864e-05,
+          0.14999984204769135
+        ]
+      },
+      {
+        "time_s": 8.3,
+        "phase": "release",
+        "target_arm_joints_rad": [
+          -0.8350722516612739,
+          1.5630313059788037,
+          -1.5888995421896883,
+          1.5464881399918258,
+          0.8350775307773379,
+          -1.5350358506606097
+        ],
+        "actual_joints_rad": [
+          -0.833599865436554,
+          1.5682538747787476,
+          -1.58521568775177,
+          1.5465306043624878,
+          0.8357580304145813,
+          -1.5180853605270386,
+          0.0029073520563542843,
+          0.0045813871547579765
+        ],
+        "tcp_position_m": [
+          0.704794704914093,
+          -0.5776625275611877,
+          0.2920387387275696
+        ],
+        "part_position_m": [
+          0.8147843480110168,
+          -0.5768301486968994,
+          0.2878641188144684
+        ],
+        "part_tcp_distance_m": 0.11007198691368103,
+        "gripper_joint_positions_rad": [
+          0.0029073520563542843,
+          0.0045813871547579765
+        ],
+        "left_contact_force_n": 0.0,
+        "right_contact_force_n": 0.0,
+        "belt_capture_paused": true,
+        "capture_anchor_part_position_m": [
+          1.0431371927261353,
+          1.8960969100589864e-05,
+          0.14999984204769135
+        ]
+      }
+    ],
+    "success": true
+  },
+  "cell_task_id": "Fanuc-Conveyor-PickPlace-M10id12-v0",
+  "ppo_training_exit": 0,
+  "ppo_training_stdout": "-----------------------------\n                         Iteration time: 0.82s\n                           Time elapsed: 0:06:48\n                                    ETA: 0:00:06\n\n################################################################################\n\u001b[1m                           Learning iteration 492/500                           \u001b[0m \n\n                            Total steps: 757248 \n                       Steps per second: 1869 \n                        Collection time: 0.655s \n                          Learning time: 0.167s \n                        Mean value loss: 0.0037\n                    Mean surrogate loss: -0.0107\n                      Mean entropy loss: -6.4181\n                            Mean reward: 0.67\n                    Mean episode length: 300.30\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0009\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0784\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0019\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.82s\n                           Time elapsed: 0:06:49\n                                    ETA: 0:00:05\n\n################################################################################\n\u001b[1m                           Learning iteration 493/500                           \u001b[0m \n\n                            Total steps: 758784 \n                       Steps per second: 1754 \n                        Collection time: 0.727s \n                          Learning time: 0.148s \n                        Mean value loss: 0.0045\n                    Mean surrogate loss: -0.0075\n                      Mean entropy loss: -6.4157\n                            Mean reward: 0.67\n                    Mean episode length: 298.55\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0007\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0658\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0017\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.88s\n                           Time elapsed: 0:06:49\n                                    ETA: 0:00:04\n\n################################################################################\n\u001b[1m                           Learning iteration 494/500                           \u001b[0m \n\n                            Total steps: 760320 \n                       Steps per second: 1880 \n                        Collection time: 0.672s \n                          Learning time: 0.145s \n                        Mean value loss: 0.0041\n                    Mean surrogate loss: -0.0123\n                      Mean entropy loss: -6.4176\n                            Mean reward: 0.67\n                    Mean episode length: 300.09\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0009\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0848\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0022\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.82s\n                           Time elapsed: 0:06:50\n                                    ETA: 0:00:04\n\n################################################################################\n\u001b[1m                           Learning iteration 495/500                           \u001b[0m \n\n                            Total steps: 761856 \n                       Steps per second: 1747 \n                        Collection time: 0.716s \n                          Learning time: 0.163s \n                        Mean value loss: 0.0030\n                    Mean surrogate loss: -0.0117\n                      Mean entropy loss: -6.4201\n                            Mean reward: 0.68\n                    Mean episode length: 301.51\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0011\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0868\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0023\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.88s\n                           Time elapsed: 0:06:51\n                                    ETA: 0:00:03\n\n################################################################################\n\u001b[1m                           Learning iteration 496/500                           \u001b[0m \n\n                            Total steps: 763392 \n                       Steps per second: 1843 \n                        Collection time: 0.684s \n                          Learning time: 0.149s \n                        Mean value loss: 0.0043\n                    Mean surrogate loss: -0.0116\n                      Mean entropy loss: -6.4233\n                            Mean reward: 0.68\n                    Mean episode length: 301.11\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0008\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0687\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0018\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.83s\n                           Time elapsed: 0:06:52\n                                    ETA: 0:00:02\n\n################################################################################\n\u001b[1m                           Learning iteration 497/500                           \u001b[0m \n\n                            Total steps: 764928 \n                       Steps per second: 1837 \n                        Collection time: 0.651s \n                          Learning time: 0.185s \n                        Mean value loss: 0.0028\n                    Mean surrogate loss: -0.0083\n                      Mean entropy loss: -6.4230\n                            Mean reward: 0.67\n                    Mean episode length: 298.25\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0009\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0652\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0017\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.84s\n                           Time elapsed: 0:06:53\n                                    ETA: 0:00:01\n\n################################################################################\n\u001b[1m                           Learning iteration 498/500                           \u001b[0m \n\n                            Total steps: 766464 \n                       Steps per second: 1941 \n                        Collection time: 0.659s \n                          Learning time: 0.132s \n                        Mean value loss: 0.0032\n                    Mean surrogate loss: -0.0081\n                      Mean entropy loss: -6.4239\n                            Mean reward: 0.68\n                    Mean episode length: 301.74\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0012\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0735\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0019\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.79s\n                           Time elapsed: 0:06:54\n                                    ETA: 0:00:00\n\n################################################################################\n\u001b[1m                           Learning iteration 499/500                           \u001b[0m \n\n                            Total steps: 768000 \n                       Steps per second: 2014 \n                        Collection time: 0.633s \n                          Learning time: 0.129s \n                        Mean value loss: 0.0029\n                    Mean surrogate loss: -0.0124\n                      Mean entropy loss: -6.4259\n                            Mean reward: 0.68\n                    Mean episode length: 300.08\n                        Mean action std: 0.11\n                   Metrics/success_rate: 0.0000\n                   Episode_Reward/reach: 0.0016\n                    Episode_Reward/lift: 0.0000\n                   Episode_Reward/grasp: 0.0000\n                   Episode_Reward/place: 0.0964\n                 Episode_Reward/release: 0.0000\n                    Episode_Reward/lost: -0.0167\n             Episode_Reward/action_rate: -0.0024\n            Episode_Reward/success_rate: 0.0000\n           Episode_Termination/time_out: 0.0000\n            Episode_Termination/success: 0.0000\n        Episode_Termination/object_lost: 1.0000\n--------------------------------------------------------------------------------\n                         Iteration time: 0.76s\n                           Time elapsed: 0:06:54\n                                    ETA: 0:00:00\n\nTraining time: 421.08 seconds\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n",
+  "ppo_training_stderr": "warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 1 package in 1.35s\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\n",
+  "ppo_checkpoints": [
+    {
+      "path": "/kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/model_400.pt",
+      "bytes": 1156715
+    },
+    {
+      "path": "/kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/model_450.pt",
+      "bytes": 1156715
+    },
+    {
+      "path": "/kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/model_499.pt",
+      "bytes": 1156715
+    }
+  ],
+  "policy_playback_exit": 0,
+  "policy_playback_stdout": "\u001b[0m\n\u2502 Physics       ovphysx                          \u2502      \u001b[0m \u001b[0m\u001b[38;2;118;185;0m\u259d\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u2584\u259d\u259c\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m \u001b[0m\u001b[38;2;118;185;0m\u2584\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u259b\u2580\u259a\u2584\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u259b\u2598\u001b[0m \u001b[0m\u001b[38;2;118;185;0m\u259d\u259c\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\n\u2502 Renderer      n/a (no camera sensors)          \u2502      \u001b[0m   \u001b[0m\u001b[38;2;118;185;0m\u2580\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m  \u001b[0m\u001b[38;2;118;185;0m\u2584\u2584\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m     \u001b[0m\u001b[38;2;118;185;0m\u259b\u2580\u2580\u2597\u2584\u2584\u259f\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m    \u001b[0m\n\u2502 Visualizer    newton_gl                        \u2502      \u001b[0m      \u001b[0m\u001b[38;2;118;185;0m\u2580\u2580\u2580\u2599\u2584\u2584\u2584\u259f\u001b[0m\u001b[38;2;118;185;0m\u001b[48;2;118;185;0m          \u001b[0m\n\u2502 Device        cuda:0                           \u2502      \u001b[0m         \u001b[0m\u001b[38;2;118;185;0m\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u2580\u001b[0m\n\u2502 Environments  1                                \u2502\n\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\n[1/3] Launching simulation\n[WARNING]: The `policy` configuration is deprecated for rsl-rl >= 4.0.0. Please use, e.g., `actor` and `critic` model configurations instead. Older rsl-rl configurations will not be supported starting with Isaac Lab 3.1. Please migrate your configuration.\n[WARNING]: The `policy` configuration is used to infer the `actor` model configuration.\n[WARNING]: The `policy` configuration is used to infer the `critic` model configuration.\n[WARNING]: The `distribution_cfg` configuration is now used to specify the output distribution for stochastic policies. Consider updating the configuration to use `distribution_cfg` instead of `stochastic`, `init_noise_std`, `noise_std_type`, and `state_dependent_std` parameters. Older rsl-rl configurations will not be supported starting with Isaac Lab 3.1. Please migrate your configuration.\n[INFO] Loading experiment from directory: /kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place\n[INFO] Video recording enabled.\n        source: visualizer:newton_gl\n        output_dir: /kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/videos/play\n        video_length: 400\n        video_interval: 2000\n[2/3] Creating environment\n[INFO]: Base environment:\n\tEnvironment device    : cuda:0\n\tEnvironment seed      : 107\n\tPhysics step-size     : 0.01\n\tRendering step-size   : 0.02\n\tEnvironment step-size : 0.02\n[INFO]: Time taken for scene creation Last: 3.659375 s, Mean: 3.659375 s, Std: 0.000000 s, N: 1\n[INFO]: Scene manager:  <class InteractiveScene>\n\tNumber of environments: 1\n\tEnvironment spacing   : 3.0\n\tSource prim name      : /World/envs/env_0\n\tGlobal prim paths     : []\n\tReplicate physics     : True\n[WARNING] [NewtonVisualizer] No display found (DISPLAY is unset); the Newton viewer runs headless via EGL and no window will open. Run from a session with a display (or set DISPLAY, e.g. 'export DISPLAY=:0') to see the viewer.\nWarning: Could not get MSAA config, falling back to non-AA.\n[INFO]: Time taken for simulation start Last: 21.842396 s, Mean: 21.842396 s, Std: 0.000000 s, N: 1\n[INFO] Command Manager:  <CommandManager> contains 0 active terms.\n+----------------------+\n| Active Command Terms |\n+-------+------+-------+\n| Index | Name |  Type |\n+-------+------+-------+\n+-------+------+-------+\n\n[INFO] Event Manager:  <EventManager> contains 2 active terms.\n+-------------------------------------+\n| Active Event Terms in Mode: 'reset' |\n+------------+------------------------+\n|   Index    | Name                   |\n+------------+------------------------+\n|     0      | reset_part             |\n+------------+------------------------+\n+----------------------------------------------------+\n|       Active Event Terms in Mode: 'interval'       |\n+-------+------------------+-------------------------+\n| Index | Name             | Interval time range (s) |\n+-------+------------------+-------------------------+\n|   0   | advance_conveyor |       (0.02, 0.02)      |\n+-------+------------------+-------------------------+\n\n[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.\n+-----------------------+\n| Active Recorder Terms |\n+------------+----------+\n|   Index    | Name     |\n+------------+----------+\n+------------+----------+\n\n[INFO] Action Manager:  <ActionManager> contains 2 active terms.\n+--------------------------------+\n| Active Action Terms (shape: 8) |\n+-------+----------+-------------+\n| Index | Name     |   Dimension |\n+-------+----------+-------------+\n|   0   | arm      |           6 |\n|   1   | gripper  |           2 |\n+-------+----------+-------------+\n\n[INFO] Observation Manager: <ObservationManager> contains 1 groups.\n+------------------------------------------------------------+\n| Active Observation Terms in Group: 'policy' (shape: (22,)) |\n+----------+------------------------------------+------------+\n|  Index   | Name                               |   Shape    |\n+----------+------------------------------------+------------+\n|    0     | joint_position                     |    (8,)    |\n|    1     | joint_velocity                     |    (8,)    |\n|    2     | part_relative_to_tcp               |    (3,)    |\n|    3     | part_velocity                      |    (3,)    |\n+----------+------------------------------------+------------+\n\n[INFO] Termination Manager:  <TerminationManager> contains 3 active terms.\n+--------------------------------+\n|    Active Termination Terms    |\n+-------+-------------+----------+\n| Index | Name        | Time Out |\n+-------+-------------+----------+\n|   0   | time_out    |   True   |\n|   1   | success     |  False   |\n|   2   | object_lost |  False   |\n+-------+-------------+----------+\n\n[INFO] Reward Manager:  <RewardManager> contains 8 active terms.\n+-------------------------------+\n|      Active Reward Terms      |\n+-------+--------------+--------+\n| Index | Name         | Weight |\n+-------+--------------+--------+\n|   0   | reach        |    1.0 |\n|   1   | lift         |    4.0 |\n|   2   | grasp        |    8.0 |\n|   3   | place        |    4.0 |\n|   4   | release      |   20.0 |\n|   5   | lost         |  -10.0 |\n|   6   | action_rate  | -0.005 |\n|   7   | success_rate |    0.0 |\n+-------+--------------+--------+\n\n[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.\n+-------------------------+\n| Active Curriculum Terms |\n+-------------+-----------+\n|    Index    | Name      |\n+-------------+-----------+\n+-------------+-----------+\n\n[INFO]: Completed setting up the environment...\n[3/3] Loading policy\n[Warning] [] ovstage backing USD stage id 9223002 is not resident in UsdUtilsStageCache; attaching ovstage-only with effective stage id 0\n[INFO]: Loading model checkpoint from: /kaggle/working/fanuc_cell_lab/logs/rsl_rl/fanuc_conveyor_pick_place/2026-10-27_02-08-35/model_499.pt\n--------------------------------------------------------------------------------\nResolved observation sets: \n\t actor :  ['policy']\n\t critic :  ['policy']\n--------------------------------------------------------------------------------\nActor Model: MLPModel(\n  (obs_normalizer): Identity()\n  (distribution): GaussianDistribution()\n  (mlp): MLP(\n    (0): Linear(in_features=22, out_features=256, bias=True)\n    (1): ELU(alpha=1.0)\n    (2): Linear(in_features=256, out_features=128, bias=True)\n    (3): ELU(alpha=1.0)\n    (4): Linear(in_features=128, out_features=64, bias=True)\n    (5): ELU(alpha=1.0)\n    (6): Linear(in_features=64, out_features=8, bias=True)\n  )\n)\nCritic Model: MLPModel(\n  (obs_normalizer): Identity()\n  (mlp): MLP(\n    (0): Linear(in_features=22, out_features=256, bias=True)\n    (1): ELU(alpha=1.0)\n    (2): Linear(in_features=256, out_features=128, bias=True)\n    (3): ELU(alpha=1.0)\n    (4): Linear(in_features=128, out_features=64, bias=True)\n    (5): ELU(alpha=1.0)\n    (6): Linear(in_features=64, out_features=1, bias=True)\n  )\n)\n[INFO] Policy playback is running, press Ctrl+C to exit...\n",
+  "policy_playback_stderr": "   Building moviepy==1.0.3\nDownloading imageio-ffmpeg (28.1MiB)\n Downloaded imageio-ffmpeg\n      Built moviepy==1.0.3\nwarning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.\n         If the cache and target directories are on different filesystems, hardlinking may not be supported.\n         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.\nInstalled 4 packages in 65ms\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/config_defaults.py:47: SyntaxWarning: invalid escape sequence '\\P'\n  IMAGEMAGICK_BINARY = r\"C:\\Program Files\\ImageMagick-6.8.8-Q16\\magick.exe\"\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/video/io/ffmpeg_reader.py:294: SyntaxWarning: invalid escape sequence '\\d'\n  lines_video = [l for l in lines if ' Video: ' in l and re.search('\\d+x\\d+', l)]\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/video/io/ffmpeg_reader.py:367: SyntaxWarning: invalid escape sequence '\\d'\n  rotation_lines = [l for l in lines if 'rotate          :' in l and re.search('\\d+$', l)]\n/kaggle/working/fanuc_cell_lab/.venv/lib/python3.12/site-packages/moviepy/video/io/ffmpeg_reader.py:370: SyntaxWarning: invalid escape sequence '\\d'\n  match = re.search('\\d+$', rotation_line)\nServing remote assets from the local cache under '/tmp'. Each copy is checked against the server before use; delete the directory to force a full re-download.\nWarp CUDA error 304: OS call failed or operation not supported on this OS (in function wp_cuda_graphics_register_gl_buffer, /builds/omniverse/warp/warp/native/warp.cu:5777)\nWarp UserWarning: Could not register GL buffer since CUDA/OpenGL interoperability is not available. Falling back to copy operations between the Warp array and the OpenGL buffer.\n",
+  "policy_video": "/kaggle/working/fanuc-cell-isaaclab-policy.mp4",
+  "policy_video_bytes": 264171
+}

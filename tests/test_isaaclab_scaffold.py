@@ -53,6 +53,11 @@ def test_task_spawns_dynamic_part_and_collidable_cell_surfaces() -> None:
     assert '"J[1-6]": (-1.0, 1.0)' not in env_cfg
     assert "stiffness=15000.0" in env_cfg
     assert '"J[1-2]": 450.0' in env_cfg
+    # Clone-mode diagnosis (fanuc-diagnose-clone-modes v1): the root is fixed
+    # by the spawner, not by the importer's --fix-base joint, and physics
+    # replication stays on so OvPhysX contact binding resolves every env.
+    assert "fix_root_link=True" in env_cfg
+    assert "replicate_physics = False" not in env_cfg
 
 
 def test_reset_and_interval_terms_accept_isaaclab_full_environment_slice() -> None:
@@ -72,16 +77,20 @@ def test_reset_and_interval_terms_accept_isaaclab_full_environment_slice() -> No
     assert "env._belt_capture_paused[env_ids] |= capture_attempt" in mdp
     assert "on_belt &= ~env._belt_capture_paused[env_ids]" in mdp
     assert "env._belt_capture_paused[env_ids] = False" in mdp
-    assert "closed_joint_position: float = 0.009" in mdp
+    assert "closed_joint_position: float = 0.004" in mdp
     assert "tool_distance: float = 0.14" in mdp
     assert "as physics_cfg" in baseline
     assert "cfg.sim.physics = physics_cfg" in baseline
     assert "measured_part = (" in baseline
-    assert "command_joints[1] += 0.018" in baseline
-    assert "command_joints[2] += 0.057" in baseline
+    # The manual J2/J3 compensation was removed after the v46 analysis showed
+    # it displaced the TCP by ~4 cm after IK; the scripted baseline must not
+    # reintroduce it.
+    assert "command_joints[1] +=" not in baseline
+    assert "command_joints[2] +=" not in baseline
     assert 'phase in {"approach", "grasp", "hold", "lift"}' in baseline
     assert 'if last_phase != "lift":' in baseline
-    assert "lift_origin_part = measured_part.copy()" in baseline
+    assert "lift_origin_part = (" in baseline
+    assert "capture_anchor_part.copy()" in baseline
     assert '"closed_bilateral_contact_steps": closed_bilateral_contact_steps' in baseline
 
 
@@ -124,12 +133,23 @@ def test_notebook_requests_t4_and_physical_policy_evidence() -> None:
     assert "--max_iterations', '500" in source
     assert "--benchmark_formatter', 'schema,summary" in source
     assert "--video_length', '400" in source
-    assert "'newton_gl', '--headless', '--video" in source
+    assert "'newton_gl', '--video" in source
+    assert "'--headless'" not in source  # Isaac Lab 3.0 play CLI rejects it (v66 verdict)
+    # Protocol v2 (founder decision 26/10/2026): train and probe at 64 envs,
+    # same 500 PPO iterations/updates as v66's 8-env run.
+    assert "'--num_envs', '64', '--max_iterations', '500'" in source
+    assert "'--num-envs', '64', '--steps', '24'" in source
     assert "did not report Metrics/success_rate" in source
     assert "baseline.returncode != 0 or not baseline_metrics.is_file()" in source
     assert "PPO training is gated until it passes" in source
     assert "physics=ovphysx" in source
-    assert "task_smoke = run(['uv', 'run', '--extra', 'ovphysx', 'isaaclab', 'zero_agent'" in source
+    # Redundant backend/task smokes were removed from the debug path (v43+);
+    # the Cartpole smoke stays available behind the RUN_BACKEND_SMOKES gate.
+    assert "RUN_BACKEND_SMOKES = False" in source
+    assert "smoke = run(['uv', 'run', '--extra', 'ovphysx', 'isaaclab', 'zero_agent'" in source
+    assert "diagnose_training_nan.py" in source
+    assert "replicate_physics" not in source  # env-side fix lives in env_cfg, not the notebook
+    assert "'--fix-base'" not in source  # root is fixed via spawn fix_root_link (mode D verdict)
     assert "convert_urdf.py" in source
     assert "convert_urdf_ovphysx.py" in source
 
@@ -138,3 +158,13 @@ def test_notebook_initializes_report_before_command_logger_runs() -> None:
     notebook = json.loads((ROOT / "kaggle/fanuc-conveyor-pick-place.ipynb").read_text())
     preflight = "".join(notebook["cells"][1]["source"])
     assert preflight.index("report = {'commands': []}") < preflight.index("def run(")
+
+
+def test_notebook_parses_list_shaped_benchmark_summary() -> None:
+    notebook = json.loads((ROOT / "kaggle/fanuc-conveyor-pick-place.ipynb").read_text())
+    source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+    # v67 verdict: the benchmark summary is a LIST of phase records whose
+    # measurements carry 'benchmark_play play success_rate'; a dict .get()
+    # crashed the notebook after every stage had already passed.
+    assert "evaluation_data.get('success_rate')" not in source
+    assert "play success_rate" in source
