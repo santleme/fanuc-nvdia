@@ -536,3 +536,28 @@ Próximo passo, a decidir na conversa principal: corrigir o
 builder para não trocar o extra do conversor (e validar o
 notebook gerado comando por comando) antes de relançar o spike;
 sem isso, qualquer nova tentativa morre no mesmo ponto.
+
+### Correção v68b / spike v2 (27/10/2026)
+
+As duas corridas da madrugada morreram em estágios diferentes, por
+bugs da preparação (não das hipóteses) — vereditos registrados no
+commit b3caed3:
+
+- **v68**: o probe importou o env_cfg e morreu com
+  `AttributeError: mdp has no attribute 'finger_contact_forces'` —
+  `mdp/__init__.py` mantém lista explícita de exports e as três
+  funções novas da v68 ficaram fora dela.
+- **Spike Newton**: a conversão URDF→USD morreu com
+  `Extra 'newton' is not defined in the optional-dependencies table`
+  — o builder renomeava o extra do uv para `newton`, que não existe;
+  o backend é dependência padrão do workspace Isaac Lab 3.0.
+
+Correções (branch fix/v68b-mdp-exports-newton-extra): exports
+completos no `mdp/__init__.py`; builder em modo não-default REMOVE o
+par `'--extra', 'ovphysx'` dos comandos em vez de renomear; testes de
+regressão estruturais para os dois bugs (exports × referências do
+env_cfg; ausência do extra proibido) + prova funcional da montagem
+newton (physics=newton nos 4 comandos, extras de vídeo/importers
+preservados). Suíte 28/28. Relançamento: v68b com o mesmo protocolo
+da v68 (256×1500) e spike v2 com o mesmo protocolo do spike (64×500)
+— as hipóteses e os portões não mudam.
