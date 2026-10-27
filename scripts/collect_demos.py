@@ -1,0 +1,191 @@
+"""Coleta demonstrações do professor scriptado no env Isaac (issue #3).
+
+Roda N episódios sequenciais de 1 env com o MESMO professor do
+baseline físico (``run_scripted_demo.py``: referência cinemática +
+IK DLS + correção por posição medida da peça), gravando os pares
+(observação da política, ação) no espaço exato do PPO via
+``fanuc_cell.demos.DemoRecorder``. Saída: ``.npz`` + resumo JSON no
+stdout (taxas de grasp/success — o portão do experimento BC).
+
+Limitação consciente (v1): o professor tem estado interno por
+episódio (âncora de captura, máquina de fases) e a coleta é
+sequencial, 1 env por vez — ~385 passos por episódio. A vetorização
+do professor para N envs é trabalho futuro registrado na SPEC;
+para 100–500 demos o custo sequencial no kernel é aceitável.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from isaaclab.app import add_launcher_args, launch_simulation
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--episodes", type=int, default=200)
+parser.add_argument("--seed", type=int, default=1000,
+                    help="Seed base; o episódio i usa seed+i.")
+parser.add_argument("--output", type=Path,
+                    default=Path("outputs/bc-demos.npz"))
+add_launcher_args(parser)
+args = parser.parse_args()
+args.physics = "ovphysx"
+args.visualizer = "none"
+
+import gymnasium as gym
+import numpy as np
+import torch
+
+from fanuc_cell.demos import DemoRecorder
+from fanuc_cell.kinematics import SerialArm, inverse_kinematics_pose
+from fanuc_cell.task import CellConfig, make_demo_episode
+from fanuc_cell_lab.tasks.conveyor_pick_place.config.m10id12.env_cfg import (
+    M10id12EnvCfg,
+)
+from fanuc_cell_lab.tasks.conveyor_pick_place.mdp import object_at_goal
+import fanuc_cell_lab.tasks  # noqa: F401
+
+
+def _policy_obs(obs) -> np.ndarray:
+    """Extrai o vetor do grupo 'policy' da observação do env manager."""
+    if isinstance(obs, dict):
+        vec = obs["policy"]
+    else:
+        vec = obs
+    if hasattr(vec, "detach"):
+        return vec.detach().cpu().numpy()[0].astype(np.float32)
+    return np.asarray(vec, dtype=np.float32)[0]
+
+
+def run_episode(env, base_env, seed: int, recorder: DemoRecorder) -> None:
+    """Um rollout do professor, gravando (obs, ação) a cada passo."""
+    obs, _ = env.reset(seed=seed)
+    part = base_env.scene["part"]
+    origin = base_env.scene.env_origins[0]
+    start_x = float(part.data.root_pos_w.torch[0, 0] - origin[0])
+    belt_speed = float(base_env._belt_speeds[0])
+    approach_duration = 1.8
+    pick_duration = 1.2
+    reference_config = CellConfig(
+        belt_start_x=start_x,
+        belt_speed=belt_speed,
+        pick_x=min(start_x + belt_speed * (approach_duration + pick_duration),
+                   1.20),
+        approach_duration=approach_duration,
+        pick_duration=pick_duration,
+        gripper_close_duration=0.5,
+        transfer_duration=2.8,
+        place_duration=0.8,
+        release_duration=0.6,
+    )
+    episode = make_demo_episode(SerialArm(), reference_config)
+    cfg_dt = base_env.cfg.sim.dt * base_env.cfg.decimation
+    step_count = int(np.ceil(episode.duration / cfg_dt))
+    device = base_env.device
+    actions = torch.zeros((1, 8), dtype=torch.float32, device=device)
+    robot = base_env.scene["robot"]
+    reference_arm = SerialArm()
+    lift_origin_part = None
+    capture_anchor_part = None
+    last_phase = None
+    success_seen = False
+
+    recorder.begin_episode()
+    current_obs = _policy_obs(obs)
+    for step in range(step_count):
+        elapsed = min(step * cfg_dt, episode.duration)
+        joints, _, gripper_closed, phase, _ = episode.sample(elapsed)
+        command_joints = joints.copy()
+        if phase in {"approach", "grasp", "hold", "lift"}:
+            measured_part = (
+                part.data.root_pos_w.torch[0] - origin
+            ).detach().cpu().numpy()
+            tool_offset = np.asarray(reference_config.tool_to_part_offset)
+            if phase == "lift":
+                if last_phase != "lift":
+                    lift_origin_part = (
+                        capture_anchor_part.copy()
+                        if capture_anchor_part is not None
+                        else measured_part.copy()
+                    )
+                target_tcp = lift_origin_part - tool_offset
+            elif capture_anchor_part is not None and phase in {"grasp", "hold"}:
+                target_tcp = capture_anchor_part - tool_offset
+            else:
+                target_tcp = measured_part - tool_offset
+            if phase in {"approach", "lift"}:
+                target_tcp[2] += reference_config.clearance
+            command_joints = inverse_kinematics_pose(
+                reference_arm, target_tcp, np.eye(3), seed=command_joints)
+        actions[:, :6] = torch.as_tensor(
+            command_joints, device=device).view(1, 6) / 3.2
+        actions[:, 6:] = -0.04 if gripper_closed else -1.0
+        recorder.record(current_obs,
+                        actions.detach().cpu().numpy()[0])
+        obs, _, terminated, truncated, _ = env.step(actions)
+        current_obs = _policy_obs(obs)
+        if capture_anchor_part is None \
+                and bool(base_env._belt_capture_paused[0]):
+            capture_anchor_part = (
+                part.data.root_pos_w.torch[0] - origin
+            ).detach().cpu().numpy().copy()
+        if bool(object_at_goal(base_env)[0]):
+            success_seen = True
+        last_phase = phase
+        if bool(terminated[0] | truncated[0]):
+            break
+    grasped = bool(getattr(
+        base_env, "_part_was_grasped",
+        torch.zeros(1, dtype=torch.bool, device=device))[0])
+    recorder.end_episode(success=success_seen or bool(
+        object_at_goal(base_env)[0]), grasped=grasped)
+
+
+def main() -> int:
+    task_id = "Fanuc-Conveyor-PickPlace-M10id12-v0"
+    cfg = M10id12EnvCfg()
+    # Como no baseline (correcao pos-v69): o professor opera nas
+    # condicoes historicas da esteira (0,05-0,10 m/s, jitter 0,10 —
+    # fallbacks do reset_part). Com o curriculo da v68 ativo, a fase 1
+    # estatica (pick em x=0,80) faz o IK do professor divergir e a
+    # coleta morre no primeiro episodio — e demo de fase errada nao
+    # ensina a tarefa real.
+    cfg.curriculum = None
+    cfg.scene.num_envs = 1
+    cfg.sim.device = args.device
+    # Como no baseline: sem terminação automática de success/lost — o
+    # episódio do professor tem duração fixa e o sucesso é medido ao
+    # vivo, sem o auto-reset trocar a peça no meio da inspeção.
+    cfg.terminations.success = None
+    cfg.terminations.object_lost = None
+
+    recorder = DemoRecorder(metadata={
+        "teacher": "scripted_demo (CellConfig + IK DLS + medição da peça)",
+        "task_id": task_id,
+        "seed_base": args.seed,
+        "episodes_requested": args.episodes,
+    })
+    with launch_simulation(cfg, args) as physics_cfg:
+        cfg.sim.physics = physics_cfg
+        env = gym.make(task_id, cfg=cfg)
+        try:
+            base_env = env.unwrapped
+            for ep in range(args.episodes):
+                run_episode(env, base_env, args.seed + ep, recorder)
+                if (ep + 1) % 25 == 0 or ep == args.episodes - 1:
+                    print(f"[collect] episodio {ep + 1}/{args.episodes}",
+                          flush=True)
+        finally:
+            env.close()
+    demos = recorder.to_demoset()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    demos.save_npz(args.output)
+    summary = demos.summary()
+    summary["output"] = str(args.output)
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
