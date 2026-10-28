@@ -876,3 +876,14 @@ Duas ressalvas que invalidam a v6 como experimento do protocolo:
 playback e benchmark com o caminho EXPLÍCITO do checkpoint (glob que
 o notebook já faz), sem `--checkpoint latest`; marcador do warm-start
 também gravado em arquivo JSON nas saídas. Todo o resto idêntico.
+
+### Protocolo de benchmark multi-seed (B3, issue #10 — 27/10/2026)
+
+A partir daqui, todo veredito oficial de benchmark reporta **média ±
+desvio de 3 seeds fixas (101, 202, 303)** do `isaaclab benchmark play`
+(16 envs × 800 passos cada): `policy_success_rate` no runtime-report
+passa a ser a média, com `policy_success_rates` (lista) e
+`policy_success_rate_std` ao lado. Seed única não separa sinal de
+ruído — os vereditos até a BC v7 foram todos de seed única (101) e
+devem ser lidos com essa ressalva. A corrida definitiva usa este
+formato.

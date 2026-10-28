@@ -7,7 +7,7 @@ v65–v67 e da auditoria, deduplicadas contra as issues existentes
 aprovação do fundador (o conector exige clique dele); os corpos abaixo
 estão prontos para virar issue como estão.
 
-## B1 — Diagnóstico de modos de perda (object_lost) [contingência]
+## B1 — Diagnóstico de modos de perda (object_lost) [contingência] — ABSORVIDA pela issue #8 (observabilidade/memória), aberta em 27/10/2026
 Se a v68 fechar PARCIAL ou MATA, rodar kernel instrumentado com a
 melhor política disponível classificando cada episódio perdido:
 transitou a esteira sem interceptação × derrubada pelo braço × caiu
@@ -22,7 +22,7 @@ playback+benchmark a partir dele. Aceitação: avaliar um checkpoint
 existente em <8 min de kernel, com success_rate idêntico ao da corrida
 original no mesmo seed.
 
-## B3 — Benchmark multi-seed no protocolo padrão
+## B3 — Benchmark multi-seed no protocolo padrão — IMPLEMENTADA em 27/10/2026 (issue #10; builder com seeds 101/202/303, média±desvio no runtime-report, SPEC atualizada)
 success_rate de seed único não separa sinal de ruído. Adotar 3 seeds
 fixas no benchmark oficial e reportar média ± desvio em todo veredito.
 Aceitação: SPEC atualizada e próximo veredito já reporta os 3 seeds.
@@ -48,7 +48,7 @@ Probe dedicado varrendo o limiar contra força de contato medida.
 Aceitação: valor único justificado por medição, código e teste
 alinhados.
 
-## B7 — CI no GitHub Actions (núcleo puro)
+## B7 — CI no GitHub Actions (núcleo puro) — ENTREGUE em 27/10/2026 (commit 57c83c9; 49/49 em venv limpo)
 Com o push por git normal destravado (27/10), o workflow de pytest do
 núcleo puro pode finalmente entrar em `.github/workflows/` (o app do
 conector não tinha essa permissão). Aceitação: push dispara o CI e o

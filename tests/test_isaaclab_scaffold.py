@@ -118,7 +118,7 @@ def test_placement_success_is_logged_for_isaaclab_benchmark() -> None:
 
     assert "success_rate = RewardTerm(func=mdp.ObjectPlacementSuccessRate, weight=0.0)" in env_cfg
     assert "self._env.extras.setdefault(\"log\", {})[\"Metrics/success_rate\"]" in mdp_source
-    assert "policy_success_rate'] is None" in builder
+    assert "_rate is None" in builder  # B3: extracao por seed do benchmark
 
 
 def test_notebook_requests_t4_and_physical_policy_evidence() -> None:
@@ -317,3 +317,14 @@ def test_bundled_project_zip_contains_every_fanuc_cell_module() -> None:
         for path in (ROOT / "src/fanuc_cell").glob("*.py")
     }
     assert on_disk <= names, f"modulos fora do zip do kernel: {on_disk - names}"
+
+
+def test_notebook_benchmark_is_multi_seed_b3() -> None:
+    # B3 (issue #10): o veredito oficial sai de 3 seeds fixas, com
+    # media +- desvio no runtime-report — seed unica nao separa
+    # sinal de ruido.
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+    assert "benchmark_seeds = (101, 202, 303)" in builder
+    assert "runtime_report['policy_success_rates'] = seed_rates" in builder
+    assert "runtime_report['policy_success_rate_std']" in builder
+    assert "'--seed', str(_seed)," in builder
