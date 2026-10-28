@@ -601,6 +601,45 @@ Suíte 29/29 com regressões dos três bugs. Relançamento: v68 como
 v70 do kernel principal (256×1500, OvPhysX) e spike v3
 (`--physics newton_mjwarp`, 64×500), portões inalterados.
 
+### Veredito do spike v3 — portão 0 verde, portão 1 reprovado por contato (27/10/2026)
+
+Kernel `pascalcoimbra/fanuc-newton-spike` v3, status `error` — mas
+desta vez a falha é física, não de preparação: conversão, importação
+e **probe passaram** (`{"finite": true, "steps": 24, "num_envs":
+64}` — portão 0 ✅). O baseline scriptado rodou o episódio inteiro
+sob `newton_mjwarp` e o notebook abortou no portão do baseline
+(`RuntimeError: Scripted physical baseline did not complete`) com o
+relatório do próprio baseline impresso no log:
+
+- `"success": false`, `"scripted_grasp_sensor_passed": false`;
+- `bilateral_contact_steps = 1`, **`closed_bilateral_contact_steps
+  = 0`** — a garra nunca fechou sobre a peça com os dois dedos
+  (baseline OvPhysX aprovado: sensor de grasp verde, picos
+  957/768 N);
+- contato **unilateral**: picos de força normal de **63,6 N (dedo
+  esquerdo) × 250,8 N (direito)** — um dedo empurra, o outro mal
+  encosta;
+- a peça termina **ejetada** em (1,633; −0,005; 0,040) — fora da
+  esteira, congelada nessa posição dos ~5 s em diante; o professor
+  completa as fases no vazio.
+
+Classificação pelo protocolo: **não é FAIL de engine ainda** — o
+portão 1 prevê retune de contato limitado a ≤ 3 tentativas
+(nconmax/atrito/impratio) antes de declarar o baseline sem contato
+bilateral. Nenhuma tentativa havia sido gasta: a v3 rodou com a
+formulação default (cone `pyramidal`, `impratio` default = 1).
+
+**Correção / retune — tentativa 1 (spike v4)**: formulação de atrito
+reforçada no preset `newton_mjwarp` (`CellPhysicsCfg`), seguindo o
+guia oficial de tuning do MJWarp (cone elíptico quando um contato
+válido ainda escorrega; `impratio` = impedância friccional relativa
+à normal): `cone="elliptic"` e `impratio=10.0`. Capacidades
+(`nconmax=512`, `njmax=1024`), integrador e a linha OvPhysX
+inalterados. Teste de regressão estrutural novo (preset com o
+retune presente, default OvPhysX intacto). Relançamento do spike
+v4 com os portões inalterados: se o baseline seguir sem contato
+bilateral fechado, restam 2 tentativas antes do FAIL de engine.
+
 ### Veredito da v70 — MATA (27/10/2026)
 
 Kernel `pascalcoimbra/fanuc-conveyor-pick-place` v70 COMPLETO
@@ -986,3 +1025,43 @@ baseline (`run_scripted_demo.py`) e na asserção do teste de scaffold
 — código e testes alinhados ao valor medido, como pede a aceitação
 da issue #13. Até lá, código e testes seguem como estão: este PR
 entrega o instrumento e a regra, não o valor.
+
+### Protocolo do vídeo industrial — newton_rtx + cena cinematic (issue #9, pré-registrado em 27/10/2026)
+
+Auditoria em `docs/audit-video-cena-2026-10-27.md` (Rota 2). O
+código da fatia 1 já está na main (`a14c799`): flag
+`--cinematic-video` no builder (só o playback troca
+`--viz newton_gl` → `newton_rtx` e ganha o extra `ovrtx`;
+`FANUC_CELL_CINEMATIC=1` só no env do subprocesso do play) e a
+variante `CellSceneCfgCinematic` no `env_cfg` (materiais PBR,
+set visual-only sem `collision_props`, luz-chave, câmera nova —
+selecionada no `__post_init__` sob a variável; MDP, física e a
+tarefa default byte a byte intactos, pinados em
+`tests/test_isaaclab_scaffold.py`, incluindo a combinação
+cinematic × física `newton_mjwarp`). Este protocolo registra a
+**prova no Kaggle**, que é o aceite da issue:
+
+1. **Pré-voo** (no próprio kernel, antes do playback): confirmar
+   contra a fonte pinada v3.0.0 que o extra `ovrtx` resolve no
+   workspace e que `isaaclab play --viz newton_rtx --video` grava
+   offscreen. Se o nome do extra divergir da fonte, a correção é
+   no builder + teste, e a corrida para aqui.
+2. **Smoke de render**: playback curto (~40 frames) medindo
+   s/frame no T4 e extrapolando os 400 frames. Estimativa da
+   auditoria: 5–40 min. Se a extrapolação passar de ~40 min,
+   reduzir para 720p no recorder antes da corrida cheia —
+   decisão com o número do smoke, não no escuro.
+3. **Corrida definitiva**: kernel construído com
+   `--cinematic-video`, mesma tarefa e mesmo checkpoint de um
+   playback `newton_gl` de referência (fisicamente idêntico por
+   construção: só viz + variante de cena mudam).
+4. **Aceite**: `policy_playback_exit = 0`; mp4 exportado
+   renderizado em `newton_rtx` com a cena cinematic; **tempo de
+   render medido e registrado** aqui como veredito, ao lado do
+   tempo do playback de referência. Falha confinada ao estágio de
+   playback (extra/classe de cfg) não contamina treino/benchmark
+   — os estágios anteriores do mesmo kernel seguem válidos.
+
+Fora deste protocolo (fatia 2, issue futura): correia/rolos
+animados sincronizados à peça, trajetória de câmera, patch PBR
+no USD do robô.
