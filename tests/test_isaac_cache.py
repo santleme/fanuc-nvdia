@@ -237,6 +237,21 @@ def test_builder_cache_composes_with_benchmark_seeds(
     compile(benchmark_cell, "<benchmark-cell-cache>", "exec")
 
 
+def test_builder_cache_composes_with_eval_only_dataset_sources(
+        tmp_path, monkeypatch) -> None:
+    # B4 (issue #12) x B2 (issue #11): as duas flags anexam dataset ao
+    # kernel — cache E checkpoint coexistem em dataset_sources (a
+    # resolução do merge acumula; nenhum dos dois sobrescreve).
+    argv = ["--isaac-cache-dataset", "tester/fanuc-isaaclab-cache",
+            "--eval-only",
+            "--eval-checkpoint", "fanuc-checkpoint-teste/model_1499.pt"]
+    source, metadata, _ = _build_main_notebook(tmp_path, monkeypatch, argv)
+    assert metadata["dataset_sources"] == [
+        "tester/fanuc-isaaclab-cache", "tester/fanuc-checkpoint-teste"]
+    assert "find_cache_mount" in source
+    assert "'--checkpoint', eval_checkpoint," in source
+
+
 def test_builder_cache_dataset_requires_full_slug(tmp_path, monkeypatch) -> None:
     builder = _load_builder("builder_cache_slug", "build_kaggle_notebook.py")
     monkeypatch.setattr(builder, "KAGGLE_DIR", tmp_path)
