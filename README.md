@@ -34,7 +34,7 @@ The system is built in three layers, so that everything that can be tested witho
 | **Isaac Lab install cache (B4)** | The Isaac Lab tree is snapshotted into a Kaggle dataset by a builder kernel; consumer kernels restore it behind a three-layer gate with automatic fallback to a full install. |
 | **Cinematic RTX playback** | A builder flag switches *only* the playback to the OVRTX path tracer (`newton_rtx`) with a PBR scene variant — structured belt, safety stripe, fence, key light, cinematic camera — over byte-identical physics, training, and benchmark code. |
 | **Live kernel telemetry** | Kaggle publishes no logs while a kernel runs, so kernels phone home: boot, per-stage completion, and a 120 s heartbeat to a per-launch ntfy.sh topic that the monitor reads in real time. Opt-in per launch; the default notebook is unchanged. |
-| **CI on the pure core** | GitHub Actions runs the structural suite — **164 tests**, Python 3.12, numpy + pytest only, no Isaac Lab, no GPU — on every push and pull request. |
+| **CI on the pure core** | GitHub Actions runs the structural suite — **165 tests**, Python 3.12, numpy + pytest only, no Isaac Lab, no GPU — on every push and pull request. |
 | **Rerun rollout logging** | Optional `--rerun` flags record rollouts for visual diagnosis; without the SDK installed the logger is a no-op. |
 
 ## Experiment log — honest verdicts
@@ -59,7 +59,7 @@ src/fanuc_cell/        Pure core: kinematics, task/teacher, demos, BC, anchored 
 isaaclab_overlay/      Isaac Lab 3.0 task: env_cfg, MDP terms, RSL-RL PPO config
 scripts/               Notebook builders, Kaggle push/status tools, training and
                        evaluation entry points, cache builder, checkpoint packaging
-tests/                 Structural suite for the pure core (164 tests, CI)
+tests/                 Structural suite for the pure core (165 tests, CI)
 spikes/                Self-contained spike notebooks (e.g. cuRobo V2 install/IK probe)
 kaggle/                Generated kernel notebook + metadata (builder output)
 SPEC.md                Specification, protocols, and every recorded verdict
