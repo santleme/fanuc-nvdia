@@ -925,3 +925,43 @@ chamadas (50 congeladas exatas, 1500 updates, model_1499). A v8 do
 kernel chegou a ser lançada sem a correção e foi substituída pela
 v9 minutos depois, ainda no estágio de coleta — nenhum resultado da
 v8 é válido nem será lido como experimento.
+
+### Protocolo do vídeo industrial — newton_rtx + cena cinematic (issue #9, pré-registrado em 27/10/2026)
+
+Auditoria em `docs/audit-video-cena-2026-10-27.md` (Rota 2). O
+código da fatia 1 já está na main (`a14c799`): flag
+`--cinematic-video` no builder (só o playback troca
+`--viz newton_gl` → `newton_rtx` e ganha o extra `ovrtx`;
+`FANUC_CELL_CINEMATIC=1` só no env do subprocesso do play) e a
+variante `CellSceneCfgCinematic` no `env_cfg` (materiais PBR,
+set visual-only sem `collision_props`, luz-chave, câmera nova —
+selecionada no `__post_init__` sob a variável; MDP, física e a
+tarefa default byte a byte intactos, pinados em
+`tests/test_isaaclab_scaffold.py`, incluindo a combinação
+cinematic × física `newton_mjwarp`). Este protocolo registra a
+**prova no Kaggle**, que é o aceite da issue:
+
+1. **Pré-voo** (no próprio kernel, antes do playback): confirmar
+   contra a fonte pinada v3.0.0 que o extra `ovrtx` resolve no
+   workspace e que `isaaclab play --viz newton_rtx --video` grava
+   offscreen. Se o nome do extra divergir da fonte, a correção é
+   no builder + teste, e a corrida para aqui.
+2. **Smoke de render**: playback curto (~40 frames) medindo
+   s/frame no T4 e extrapolando os 400 frames. Estimativa da
+   auditoria: 5–40 min. Se a extrapolação passar de ~40 min,
+   reduzir para 720p no recorder antes da corrida cheia —
+   decisão com o número do smoke, não no escuro.
+3. **Corrida definitiva**: kernel construído com
+   `--cinematic-video`, mesma tarefa e mesmo checkpoint de um
+   playback `newton_gl` de referência (fisicamente idêntico por
+   construção: só viz + variante de cena mudam).
+4. **Aceite**: `policy_playback_exit = 0`; mp4 exportado
+   renderizado em `newton_rtx` com a cena cinematic; **tempo de
+   render medido e registrado** aqui como veredito, ao lado do
+   tempo do playback de referência. Falha confinada ao estágio de
+   playback (extra/classe de cfg) não contamina treino/benchmark
+   — os estágios anteriores do mesmo kernel seguem válidos.
+
+Fora deste protocolo (fatia 2, issue futura): correia/rolos
+animados sincronizados à peça, trajetória de câmera, patch PBR
+no USD do robô.
