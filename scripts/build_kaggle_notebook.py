@@ -33,6 +33,7 @@ def bundled_project() -> str:
         "src/fanuc_cell/rerun_log.py",
         "src/fanuc_cell/isaac_cache.py",
         "src/fanuc_cell/anchored_ppo.py",
+        "src/fanuc_cell/phone_home.py",
         "src/fanuc_cell/gripper_threshold.py",
         "scripts/prepare_isaac_cache.py",
         "scripts/render_demo.py",
@@ -50,6 +51,7 @@ def bundled_project() -> str:
         "tests/test_rerun_log.py",
         "tests/test_gripper_threshold.py",
         "tests/test_anchored_ppo.py",
+        "tests/test_phone_home.py",
     ]
     included.extend(
         path.relative_to(ROOT).as_posix()
@@ -165,6 +167,19 @@ def main() -> None:
              "intercambiaveis entre valores de N.",
     )
     parser.add_argument(
+        "--phone-home-topic", default="",
+        metavar="TOPICO",
+        help="Telemetria em tempo real do kernel (regra do fundador, "
+             "28/10/2026): tópico ntfy.sh para onde o notebook manda "
+             "boot, fim de cada estágio e heartbeat de 120 s enquanto "
+             "roda — o Kaggle não publica log/saída durante a corrida, "
+             "então sem isto uma corrida longa é caixa-preta (uma "
+             "sessão do cache builder ficou ~11 h pendurada invisível). "
+             "O fonte de src/fanuc_cell/phone_home.py é embutido na "
+             "célula principal e o tópico é registrado no corpo do "
+             "monitor da corrida. Default vazio = sem telemetria, "
+             "notebook idêntico ao de sempre.")
+    parser.add_argument(
         "--single-boot-spike", action="store_true",
         help="Spike B5 (issue #14): probe e baseline num único boot "
              "do Isaac Sim — um só comando roda "
@@ -212,6 +227,12 @@ def main() -> None:
              "'latest' é proibido (lição da BC v6).",
     )
     args = parser.parse_args()
+    if args.phone_home_topic and not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_-]{7,63}", args.phone_home_topic):
+        parser.error("--phone-home-topic precisa casar "
+                     "[A-Za-z0-9][A-Za-z0-9_-]{7,63} (o tópico vira URL "
+                     "e literal no notebook; gere um por lançamento, "
+                     "ex.: fanuc-<slug>-<sufixo aleatório>)")
     if args.isaac_cache_dataset and "/" not in args.isaac_cache_dataset:
         parser.error("--isaac-cache-dataset exige o slug completo "
                      "USUARIO/DATASET (é ele que vira o mount "
@@ -1151,6 +1172,48 @@ def main() -> None:
                 "na célula principal — builder dessincronizado do "
                 "notebook (issue #12)."
             )
+    if args.phone_home_topic:
+        # Telemetria em tempo real (regra do fundador, 28/10/2026): o
+        # fonte de phone_home.py é embutido na célula principal, que o
+        # grava em /kaggle/working, configura o tópico, sobe o heartbeat
+        # e ganha um gancho no stage_end — cada fim de estágio posta
+        # nome+tempo no tópico. Sem a flag, nada disto existe no
+        # notebook (provado por teste: default sem traço de ntfy).
+        module_source = (ROOT / "src/fanuc_cell/phone_home.py").read_text(
+            encoding="utf-8")
+        prelude_lines = [
+            f"PHONE_HOME_TOPIC = {args.phone_home_topic!r}\n",
+            f"(working_dir / 'phone_home.py').write_text("
+            f"{module_source!r})\n",
+            "sys.path.insert(0, str(working_dir))\n",
+            "import phone_home as _ph\n",
+            "_ph.configure(PHONE_HOME_TOPIC)\n",
+            "_ph.start_heartbeat(120)\n",
+            "def _ph_stage(name, elapsed):\n",
+            "    try:\n",
+            "        _ph.stage_done(name, elapsed)\n",
+            "    except Exception:\n",
+            "        pass\n",
+            "_ph.note('boot: kernel iniciado')\n",
+        ]
+        perf_anchor = "    print(f'[PERF] stage={name} seconds={elapsed}')\n"
+        boot_anchor = "stage_start('gpu_preflight')\n"
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if perf_anchor not in source or boot_anchor not in source:
+                continue
+            source = source.replace(
+                perf_anchor,
+                perf_anchor + "    _ph_stage(name, elapsed)\n", 1)
+            source = source.replace(
+                boot_anchor, "".join(prelude_lines) + boot_anchor, 1)
+            cell["source"] = source.splitlines(keepends=True)
+            break
+        else:
+            raise RuntimeError(
+                "âncoras do harness de estágios não encontradas na "
+                "célula principal — builder dessincronizado do "
+                "notebook (phone-home).")
     notebook_path = KAGGLE_DIR / NOTEBOOK_NAME
     notebook_path.write_text(json.dumps(notebook, indent=1) + "\n")
     metadata = {
