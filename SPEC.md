@@ -927,6 +927,30 @@ ruído — os vereditos até a BC v7 foram todos de seed única (101) e
 devem ser lidos com essa ressalva. A corrida definitiva usa este
 formato.
 
+**Refinamento B3 (28/10/2026, antes do primeiro veredito neste
+formato — nenhum veredito emitido é afetado):** a matemática da
+agregação mora num módulo puro e testado,
+`fanuc_cell.benchmark_stats` (`summarize_rates`), usado pela
+célula de benchmark do notebook — fonte única, sem conta inline.
+O desvio passa a ser o **amostral (ddof=1)** e o runtime-report
+ganha `policy_success_rate_ci95` (meia-largura do IC95 da média,
+z × desvio/√n) e `policy_benchmark_seeds` (a lista usada); cada
+entrada de `policy_evaluation_runs` carrega também o
+`success_rate`/`grasp_rate` da sua seed. O veredito reporta as
+duas métricas: além do success, o benchmark agrega o **grasp**
+por seed — `Metrics/grasp_rate` (fração dos episódios encerrados
+com a peça segurada ao menos uma vez), logado pelo termo de peso
+0.0 `ObjectGraspRate`, espelho do canal do success — em
+`policy_grasp_rates` (lista, `null` por seed quando ausente),
+`policy_grasp_rate` (média), `policy_grasp_rate_std` e
+`policy_grasp_rate_ci95`; se o benchmark não reportar grasp,
+`policy_grasp_rate` fica `null` e o success segue como portão
+único (a ausência é registrada, nunca silenciosa). As seeds são
+parâmetro do builder (`--benchmark-seeds`, default
+`101,202,303` = este protocolo); uma seed só reproduz a leitura
+legada (desvio/IC95 = 0). Formato da linha de veredito:
+`success_rate 0,000 ± 0,000 (IC95 ± 0,000, n=3)` — idem grasp.
+
 ### Estudo de observabilidade/memória (issue #8) e Experimento 1 (27/10/2026)
 
 Estudo completo em `docs/estudo-observabilidade-2026-10-27.md`.
