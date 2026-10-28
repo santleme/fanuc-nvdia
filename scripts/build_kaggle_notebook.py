@@ -32,6 +32,7 @@ def bundled_project() -> str:
         "src/fanuc_cell/bc.py",
         "src/fanuc_cell/rerun_log.py",
         "src/fanuc_cell/isaac_cache.py",
+        "src/fanuc_cell/anchored_ppo.py",
         "src/fanuc_cell/gripper_threshold.py",
         "scripts/prepare_isaac_cache.py",
         "scripts/render_demo.py",
@@ -48,6 +49,7 @@ def bundled_project() -> str:
         "tests/test_static_clearance.py",
         "tests/test_rerun_log.py",
         "tests/test_gripper_threshold.py",
+        "tests/test_anchored_ppo.py",
     ]
     included.extend(
         path.relative_to(ROOT).as_posix()
@@ -129,6 +131,29 @@ def main() -> None:
                              "PROTEGIDO (entropia 0, crítico aquecido "
                              "com o ator congelado por 50 iterações).")
     parser.add_argument(
+        "--bc-anchor", action="store_true",
+        help="Experimento 3 (issue #23, receita DAPG/RFT): PPO "
+             "ancorado em BC sobre o modo protegido do Exp. 1 "
+             "(exige --bc-warmstart E --bc-exp1). O comando de "
+             "treino ganha a âncora KL/MSE com peso decaindo, o "
+             "gating tanh do passo do ator e o std congelado; a "
+             "âncora amostra das demos da própria corrida. Default "
+             "desligado — sem a flag o notebook é o de sempre.")
+    parser.add_argument("--anchor-weight", type=float, default=0.02,
+                        help="Peso inicial (beta0) da âncora (com "
+                             "--bc-anchor). Referência da receita: "
+                             "0,02 no modo kl.")
+    parser.add_argument("--anchor-mode", choices=("kl", "mse"),
+                        default="kl",
+                        help="kl = KL para o professor BC congelado; "
+                             "mse = MSE para as ações das demos.")
+    parser.add_argument("--anchor-final-frac", type=float, default=0.0,
+                        help="Fração de beta0 ao fim do decaimento "
+                             "linear da âncora (0 = some no fim).")
+    parser.add_argument("--gate-warmup", type=int, default=50,
+                        help="T do gating tanh(t/T) do passo do ator "
+                             "na fase conjunta (com --bc-anchor).")
+    parser.add_argument(
         "--obs-history", type=int, default=1,
         help="Experimento OBS-2 (issue #8): empilha os ultimos N "
              "frames na observacao da politica "
@@ -195,6 +220,20 @@ def main() -> None:
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
     if args.bc_exp1 and not args.bc_warmstart:
         parser.error("--bc-exp1 exige --bc-warmstart")
+    if args.bc_anchor and not args.bc_warmstart:
+        parser.error("--bc-anchor exige --bc-warmstart")
+    if args.bc_anchor and not args.bc_exp1:
+        # O protocolo da issue #23 lê grasp_A do Estágio A e roda
+        # o Estágio B sobre o modo protegido — sem o Exp. 1 a
+        # corrida ancorada não tem as leituras dos portões.
+        parser.error("--bc-anchor exige --bc-exp1 (o protocolo lê "
+                     "o Estágio A e roda sobre o modo protegido)")
+    if args.bc_anchor and args.anchor_weight <= 0:
+        parser.error("--bc-anchor exige --anchor-weight > 0")
+    if not 0.0 <= args.anchor_final_frac <= 1.0:
+        parser.error("--anchor-final-frac deve estar em [0, 1]")
+    if args.gate_warmup < 0:
+        parser.error("--gate-warmup deve ser >= 0")
     if args.obs_history < 1:
         parser.error("--obs-history deve ser >= 1 (1 = frame unico)")
     if args.single_boot_spike and args.bc_warmstart:
@@ -762,6 +801,37 @@ def main() -> None:
             raise RuntimeError(
                 "anchor do baseline_env nao encontrado para injetar "
                 "FANUC_CELL_OBS_HISTORY")
+    # Experimento 3 (issue #23), só com --bc-anchor: a configuração
+    # da receita entra no runtime-report — sem ela, uma corrida
+    # ancorada seria indistinguível de uma protegida comum no
+    # relatório (a leitura dos portões exige saber que a âncora
+    # rodou e com que cronograma). Com o default, nada aqui roda.
+    if args.bc_anchor:
+        anchor = ("    baseline_env['PYTHONPATH'] = str(project_dir / 'src')"
+                  " + os.pathsep + baseline_env.get('PYTHONPATH', '')\n")
+        anchor_cfg = {
+            "weight": args.anchor_weight,
+            "mode": args.anchor_mode,
+            "final_frac": args.anchor_final_frac,
+            "gate_warmup": args.gate_warmup,
+            "freeze_std": True,
+            "entropy_coef": 0.0,
+        }
+        injection = (
+            anchor
+            + f"    runtime_report['bc_anchor'] = {anchor_cfg!r}\n"
+        )
+        found = False
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if anchor in source:
+                source = source.replace(anchor, injection, 1)
+                found = True
+            cell["source"] = source.splitlines(keepends=True)
+        if not found:
+            raise RuntimeError(
+                "anchor do baseline_env nao encontrado para injetar "
+                "runtime_report['bc_anchor']")
     # Seeds do benchmark multi-seed (B3, issue #10): o default do
     # protocolo (101, 202, 303) já é o literal da célula; outra
     # lista troca o token, num lugar só — mesmo padrão da física.
@@ -879,6 +949,31 @@ def main() -> None:
                         "'--seed', '7'], cwd=project_dir)",
                         "'--seed', '7', '--protected', "
                         "'--warmup-iters', '50'], cwd=project_dir)", 1)
+                if args.bc_anchor:
+                    # Receita ancorada (issue #23) sobre o Estágio B
+                    # protegido: âncora com peso decaindo, gating
+                    # tanh e std congelado; a âncora amostra das
+                    # demos coletadas NESTA corrida (bc-demos.npz).
+                    anchored_tail = (
+                        "'--warmup-iters', '50', "
+                        f"'--anchor-weight', '{args.anchor_weight}', "
+                        f"'--anchor-mode', '{args.anchor_mode}', "
+                        "'--anchor-final-frac', "
+                        f"'{args.anchor_final_frac}', "
+                        f"'--gate-warmup', '{args.gate_warmup}', "
+                        "'--anchor-demos', "
+                        "'/kaggle/working/bc-demos.npz', "
+                        "'--freeze-std'], cwd=project_dir)")
+                    new_source = source.replace(
+                        "'--warmup-iters', '50'], cwd=project_dir)",
+                        anchored_tail, 1)
+                    if new_source == source:
+                        raise RuntimeError(
+                            "anchor do comando de treino nao "
+                            "encontrado para injetar a receita "
+                            "ancorada (issue #23) — builder "
+                            "dessincronizado do notebook")
+                    source = new_source
                 # Playback e benchmark com o checkpoint EXPLICITO: o
                 # '--checkpoint latest' do entrypoint unificado exige
                 # um manifesto de run que so o `isaaclab train`

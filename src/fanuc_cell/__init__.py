@@ -1,5 +1,12 @@
 """Kinematic and task logic for the conveyor pick-and-place cell."""
 
+from .anchored_ppo import (
+    AnchorSchedule,
+    DemoBuffer,
+    anchor_weight_at,
+    gate_beta,
+    gaussian_kl_diag,
+)
 from .benchmark_stats import DEFAULT_BENCHMARK_SEEDS, format_rate_summary, summarize_rates
 from .gripper_threshold import (
     CANDIDATE_GRID_M,
@@ -29,14 +36,19 @@ __all__ = [
     "DEFAULT_BENCHMARK_SEEDS",
     "ISAACLAB_REF",
     "M10ID12_APPROX",
+    "AnchorSchedule",
+    "DemoBuffer",
     "PickPlaceEpisode",
     "RolloutLogger",
     "SerialArm",
     "analyze_threshold_samples",
+    "anchor_weight_at",
     "build_cache_manifest",
     "cache_restore_plan",
     "find_cache_mount",
     "format_rate_summary",
+    "gate_beta",
+    "gaussian_kl_diag",
     "inverse_kinematics",
     "inverse_kinematics_pose",
     "make_demo_episode",
