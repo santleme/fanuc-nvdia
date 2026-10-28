@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from build_kaggle_notebook import bundled_project  # noqa: E402
+from build_kaggle_notebook import bundled_project
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = ROOT / "kaggle-cache"

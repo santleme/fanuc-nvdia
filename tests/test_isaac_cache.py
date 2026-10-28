@@ -19,8 +19,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from fanuc_cell import isaac_cache  # noqa: E402
-from fanuc_cell.isaac_cache import (  # noqa: E402
+from fanuc_cell import isaac_cache
+from fanuc_cell.isaac_cache import (
     ISAACLAB_PART,
     MANIFEST_NAME,
     UV_CACHE_PART,
