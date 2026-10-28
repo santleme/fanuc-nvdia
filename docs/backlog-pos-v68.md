@@ -41,6 +41,11 @@ se os dois estágios rodarem no mesmo processo com os mesmos
 vereditos, adota; se não, encerra sem custo. Aceitação: veredito do
 spike registrado na SPEC.
 
+Implementação pronta (issue #14, 27/10/2026): entrypoint
+`scripts/probe_and_baseline.py` + flag `--single-boot-spike` no
+builder; protocolo pré-registrado na SPEC. Veredito aguarda a
+corrida do spike no Kaggle.
+
 ## B6 — Banda ambígua do limiar da garra (0,004–0,005 m)
 Achado da auditoria de 26/10: o limiar de fechamento tem uma banda sem
 comportamento definido entre o valor do código e o dos testes antigos.
