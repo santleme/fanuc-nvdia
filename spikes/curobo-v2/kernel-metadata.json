@@ -1,0 +1,15 @@
+{
+ "id": "pascalcoimbra/fanuc-curobo-v2-spike-install-ik",
+ "title": "FANUC cuRobo V2 spike install IK",
+ "code_file": "curobo-spike.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": true,
+ "enable_gpu": true,
+ "enable_internet": true,
+ "machine_shape": "NvidiaTeslaT4",
+ "dataset_sources": [],
+ "competition_sources": [],
+ "kernel_sources": [],
+ "category_ids": []
+}

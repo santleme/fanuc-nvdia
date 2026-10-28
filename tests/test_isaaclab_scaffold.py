@@ -218,6 +218,25 @@ def test_newton_preset_is_available_but_inert() -> None:
     assert "default: OvPhysxCfg = ovphysx" in env_cfg
 
 
+def test_newton_preset_contact_retune_attempt_1() -> None:
+    """Spike v3 (issue #2): portão 0 verde, portão 1 reprovado por
+    comportamento — contato unilateral (picos 63,6 × 250,8 N),
+    `closed_bilateral_contact_steps = 0` e peça ejetada da esteira
+    com o cone `pyramidal` e o `impratio` default (= 1). O protocolo
+    do spike permite ≤ 3 retunes de contato (nconmax/atrito/impratio);
+    a tentativa 1 reforça a formulação de atrito no preset Newton:
+    cone `elliptic` + `impratio=10`. Regressão: se alguém reverter o
+    retune (ou mexer nas capacidades), este teste quebra antes do
+    kernel. O preset OvPhysX e o default seguem intocados."""
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    assert 'cone="elliptic"' in env_cfg
+    assert "impratio=10.0" in env_cfg
+    assert 'cone="pyramidal"' not in env_cfg
+    assert "nconmax=512" in env_cfg and "njmax=1024" in env_cfg
+    assert "default: OvPhysxCfg = ovphysx" in env_cfg
+
+
 def test_notebook_builder_parameterizes_experiment() -> None:
     """Builder: física/escala/slug viram parâmetros; defaults = histórico."""
     builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
@@ -470,3 +489,38 @@ def test_cinematic_scene_variant_keeps_physics_and_mdp() -> None:
         assert "Cinematic" not in block, cfg_cls
     physics = _class_block(env_cfg, "class CellPhysicsCfg", "@configclass")
     assert "default: OvPhysxCfg = ovphysx" in physics
+
+
+def test_builder_cinematic_survives_newton_physics_mode(
+        tmp_path, monkeypatch) -> None:
+    """Issue #9 × issue #2: cinematic + física não-default no mesmo build.
+
+    O modo newton reescreve TODAS as listas de comando do notebook
+    (remove o par '--extra', 'ovphysx' e troca o token physics=). O
+    builder afirma no comentário que as âncoras do cinematic foram
+    escolhidas para sobreviver a essa reescrita — este teste pina a
+    afirmação: o playback sai em newton_rtx com o extra ovrtx e o
+    token da física nova, e o treino ganha a física nova SEM ganhar
+    nada do cinematic.
+    """
+    source = _build_notebook_source(
+        tmp_path / "n", monkeypatch,
+        ["--physics", "newton_mjwarp", "--cinematic-video"])
+
+    end = "runtime_report['policy_playback_exit']"
+    playback = _statement(source, "playback = run(", end)
+    assert "'--viz', 'newton_rtx', '--video', '--video_length', '400'" in playback
+    assert "'--extra', 'video', '--extra', 'ovrtx', 'isaaclab', 'play'" in playback
+    assert "physics=newton_mjwarp" in playback
+    assert "'--extra', 'ovphysx'" not in playback
+    assert "cwd=project_dir, env=cinematic_env" in playback
+
+    training = _statement(source, "training = run(",
+                          "runtime_report['ppo_training_exit']")
+    assert "physics=newton_mjwarp" in training
+    assert "newton_rtx" not in training and "ovrtx" not in training
+
+    # O cinematic continua confinado ao playback, mesmo com a física
+    # trocada: um único rtx e um único extra ovrtx no notebook inteiro.
+    assert source.count("newton_rtx") == 1
+    assert source.count("'--extra', 'ovrtx'") == 1
