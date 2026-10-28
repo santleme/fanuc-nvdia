@@ -1,0 +1,33 @@
+name: CI
+
+# Núcleo puro (src/fanuc_cell) + testes estruturais: roda sem Isaac Lab,
+# sem GPU e sem o overlay — só numpy + pytest (pyproject: numpy>=2.0,
+# dev: pytest>=8). Os testes do overlay Isaac vivem fora de tests/ e
+# continuam validados pelos kernels Kaggle, não por este workflow.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências dos testes
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy>=2.0" "pytest>=8"
+
+      - name: Suíte do núcleo puro
+        run: PYTHONPATH=src python -m pytest -q
