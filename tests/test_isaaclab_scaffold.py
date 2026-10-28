@@ -218,6 +218,25 @@ def test_newton_preset_is_available_but_inert() -> None:
     assert "default: OvPhysxCfg = ovphysx" in env_cfg
 
 
+def test_newton_preset_contact_retune_attempt_1() -> None:
+    """Spike v3 (issue #2): portão 0 verde, portão 1 reprovado por
+    comportamento — contato unilateral (picos 63,6 × 250,8 N),
+    `closed_bilateral_contact_steps = 0` e peça ejetada da esteira
+    com o cone `pyramidal` e o `impratio` default (= 1). O protocolo
+    do spike permite ≤ 3 retunes de contato (nconmax/atrito/impratio);
+    a tentativa 1 reforça a formulação de atrito no preset Newton:
+    cone `elliptic` + `impratio=10`. Regressão: se alguém reverter o
+    retune (ou mexer nas capacidades), este teste quebra antes do
+    kernel. O preset OvPhysX e o default seguem intocados."""
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    assert 'cone="elliptic"' in env_cfg
+    assert "impratio=10.0" in env_cfg
+    assert 'cone="pyramidal"' not in env_cfg
+    assert "nconmax=512" in env_cfg and "njmax=1024" in env_cfg
+    assert "default: OvPhysxCfg = ovphysx" in env_cfg
+
+
 def test_notebook_builder_parameterizes_experiment() -> None:
     """Builder: física/escala/slug viram parâmetros; defaults = histórico."""
     builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()

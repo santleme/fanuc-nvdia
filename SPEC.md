@@ -601,6 +601,45 @@ Suíte 29/29 com regressões dos três bugs. Relançamento: v68 como
 v70 do kernel principal (256×1500, OvPhysX) e spike v3
 (`--physics newton_mjwarp`, 64×500), portões inalterados.
 
+### Veredito do spike v3 — portão 0 verde, portão 1 reprovado por contato (27/10/2026)
+
+Kernel `pascalcoimbra/fanuc-newton-spike` v3, status `error` — mas
+desta vez a falha é física, não de preparação: conversão, importação
+e **probe passaram** (`{"finite": true, "steps": 24, "num_envs":
+64}` — portão 0 ✅). O baseline scriptado rodou o episódio inteiro
+sob `newton_mjwarp` e o notebook abortou no portão do baseline
+(`RuntimeError: Scripted physical baseline did not complete`) com o
+relatório do próprio baseline impresso no log:
+
+- `"success": false`, `"scripted_grasp_sensor_passed": false`;
+- `bilateral_contact_steps = 1`, **`closed_bilateral_contact_steps
+  = 0`** — a garra nunca fechou sobre a peça com os dois dedos
+  (baseline OvPhysX aprovado: sensor de grasp verde, picos
+  957/768 N);
+- contato **unilateral**: picos de força normal de **63,6 N (dedo
+  esquerdo) × 250,8 N (direito)** — um dedo empurra, o outro mal
+  encosta;
+- a peça termina **ejetada** em (1,633; −0,005; 0,040) — fora da
+  esteira, congelada nessa posição dos ~5 s em diante; o professor
+  completa as fases no vazio.
+
+Classificação pelo protocolo: **não é FAIL de engine ainda** — o
+portão 1 prevê retune de contato limitado a ≤ 3 tentativas
+(nconmax/atrito/impratio) antes de declarar o baseline sem contato
+bilateral. Nenhuma tentativa havia sido gasta: a v3 rodou com a
+formulação default (cone `pyramidal`, `impratio` default = 1).
+
+**Correção / retune — tentativa 1 (spike v4)**: formulação de atrito
+reforçada no preset `newton_mjwarp` (`CellPhysicsCfg`), seguindo o
+guia oficial de tuning do MJWarp (cone elíptico quando um contato
+válido ainda escorrega; `impratio` = impedância friccional relativa
+à normal): `cone="elliptic"` e `impratio=10.0`. Capacidades
+(`nconmax=512`, `njmax=1024`), integrador e a linha OvPhysX
+inalterados. Teste de regressão estrutural novo (preset com o
+retune presente, default OvPhysX intacto). Relançamento do spike
+v4 com os portões inalterados: se o baseline seguir sem contato
+bilateral fechado, restam 2 tentativas antes do FAIL de engine.
+
 ### Veredito da v70 — MATA (27/10/2026)
 
 Kernel `pascalcoimbra/fanuc-conveyor-pick-place` v70 COMPLETO
