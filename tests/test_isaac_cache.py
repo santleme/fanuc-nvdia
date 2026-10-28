@@ -283,6 +283,33 @@ def test_cache_builder_kernel_installs_warms_and_snapshots(
     assert "isaac-cache-manifest.json" in source
 
 
+def test_cache_builder_notebook_cells_all_compile(
+        tmp_path, monkeypatch) -> None:
+    """Regressão (issue #12): TODAS as células de código do notebook do
+    CONSTRUTOR compilam. Os testes do consumidor compilavam as células
+    dele, mas as do construtor nunca eram compiladas — a aspa de abertura
+    faltante no print final do builder passou e só explodiu como
+    SyntaxError (U+2014) na célula final do kernel, depois de a
+    instalação inteira rodar, sem produzir o snapshot isaaclab-cache/.
+    Linhas de magic/shell (``%cd``, ``!...``) são sintaxe do IPython,
+    não do CPython: saem antes do compile, o resto é Python puro."""
+    builder = _load_builder("builder_cache_compile", "build_cache_notebook.py")
+    monkeypatch.setattr(builder, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(
+        sys, "argv", ["build_cache_notebook.py", "--kaggle-user", "tester"])
+    builder.main()
+
+    notebook = json.loads((tmp_path / builder.NOTEBOOK_NAME).read_text())
+    code_cells = [c for c in notebook["cells"] if c["cell_type"] == "code"]
+    assert code_cells, "o notebook do construtor precisa de células de código"
+    for idx, cell in enumerate(code_cells):
+        source = "".join(cell["source"])
+        python_source = "\n".join(
+            line for line in source.splitlines()
+            if not line.lstrip().startswith(("%", "!")))
+        compile(python_source, f"<cache-builder-cell-{idx}>", "exec")
+
+
 def test_cache_module_is_bundled_and_exported() -> None:
     builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
     assert '"src/fanuc_cell/isaac_cache.py"' in builder
