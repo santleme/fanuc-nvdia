@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
@@ -154,6 +156,213 @@ class CellSceneCfg(InteractiveSceneCfg):
     )
 
 
+def _cinematic_enabled() -> bool:
+    """Variante de cena do vídeo industrial (issue #9, fatia 1).
+
+    Ligada SO pelo playback cinematic do notebook Kaggle: o builder
+    (``--cinematic-video``) roda o ``isaaclab play`` com
+    ``FANUC_CELL_CINEMATIC=1`` no ambiente do subprocesso e
+    ``--viz newton_rtx``. Treino, coleta e benchmark nunca veem a
+    variável, então a tarefa default é byte a byte a de sempre.
+    """
+    return os.environ.get("FANUC_CELL_CINEMATIC", "0") == "1"
+
+
+# Materiais PBR da variante cinematic (USD PreviewSurface — o path
+# tracer OVRTX os lê direto; no rasterizador GL são ignorados sem
+# erro). Conferidos contra a fonte pinada v3.0.0:
+# isaaclab/sim/spawners/materials/visual_materials_cfg.py.
+_BELT_SURFACE_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.05, 0.05, 0.055), roughness=0.92, metallic=0.0)
+_STEEL_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.36, 0.38, 0.40), roughness=0.38, metallic=0.9)
+_DARK_FRAME_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.10, 0.10, 0.11), roughness=0.55, metallic=0.6)
+_PEDESTAL_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.16, 0.17, 0.19), roughness=0.50, metallic=0.7)
+_PART_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.72, 0.30, 0.10), roughness=0.45, metallic=0.1)
+_SAFETY_YELLOW_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.85, 0.62, 0.04), roughness=0.60, metallic=0.0)
+_FENCE_PANEL_MATERIAL = sim_utils.PreviewSurfaceCfg(
+    diffuse_color=(0.85, 0.62, 0.04), roughness=0.50, metallic=0.3,
+    opacity=0.35)
+
+
+@configclass
+class CellSceneCfgCinematic(CellSceneCfg):
+    """CellSceneCfg com roupa industrial — SO para o vídeo (issue #9).
+
+    Invariantes (pinadas em tests/test_isaaclab_scaffold.py):
+    - belt/pedestal/part têm o MESMO tamanho, a MESMA colisão e os
+      MESMOS corpos rígidos/massa da cena default; só ganham
+      ``visual_material``.
+    - Todo prim novo é decorativo e nasce SEM ``collision_props``
+      (o spawner de shapes só cria colisor quando ele é dado) e sem
+      ``rigid_props``: visual-only por construção.
+    - Pernas da esteira foram omitidas de propósito: a caixa física
+      da esteira já encosta no chão (fundo em z=0), então pernas
+      ficariam 100% oclusas; a leitura "estruturada" vem dos trilhos
+      laterais, dos rolos das pontas e da chapa-correia no topo.
+    """
+
+    # Chão: o GroundPlaneCfg pinado (v3.0.0) é um USD de referência
+    # sem slot de visual_material — o ajuste possível sem trocar o
+    # spawner (e a colisão) é tamanho + tint mais escuro/concreto.
+    ground = AssetBaseCfg(
+        prim_path="/World/ground",
+        spawn=sim_utils.GroundPlaneCfg(size=(8.0, 8.0),
+                                       color=(0.42, 0.42, 0.44)),
+    )
+    belt = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Belt",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.53, 0.84, 0.11),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            visual_material=_DARK_FRAME_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.985, 0.0, 0.055)),
+    )
+    place_pedestal = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/PlacePedestal",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.36, 0.32, 0.04),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            visual_material=_PEDESTAL_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.80, -0.58, 0.22)),
+    )
+    part = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/Part",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.08, 0.08, 0.08),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.35),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            visual_material=_PART_MATERIAL,
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.828, 0.0, 0.15)),
+    )
+    # Dome mais fria e contida — quem manda no path tracer é a
+    # luz-chave (distant, sombras direcionais de "galpão").
+    light = AssetBaseCfg(
+        prim_path="/World/light",
+        spawn=sim_utils.DomeLightCfg(intensity=1100.0,
+                                     color=(0.72, 0.78, 0.88)),
+    )
+    key_light = AssetBaseCfg(
+        prim_path="/World/keyLight",
+        spawn=sim_utils.DistantLightCfg(intensity=2600.0,
+                                        color=(1.0, 0.96, 0.90),
+                                        angle=12.0),
+    )
+    # --- set visual-only: NENHUM prim abaixo tem collision_props ---
+    belt_top = AssetBaseCfg(  # chapa-correia sobre a caixa da esteira
+        prim_path="{ENV_REGEX_NS}/BeltTop",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.53, 0.84, 0.002),
+            visual_material=_BELT_SURFACE_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.985, 0.0, 0.111)),
+    )
+    belt_rail_left = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/BeltRailLeft",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.60, 0.025, 0.05),
+            visual_material=_STEEL_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.985, 0.445, 0.085)),
+    )
+    belt_rail_right = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/BeltRailRight",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.60, 0.025, 0.05),
+            visual_material=_STEEL_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.985, -0.445, 0.085)),
+    )
+    belt_roller_in = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/BeltRollerIn",
+        spawn=sim_utils.CylinderCfg(
+            radius=0.045, height=0.88, axis="Y",
+            visual_material=_STEEL_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.685, 0.0, 0.055)),
+    )
+    belt_roller_out = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/BeltRollerOut",
+        spawn=sim_utils.CylinderCfg(
+            radius=0.045, height=0.88, axis="Y",
+            visual_material=_STEEL_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(1.285, 0.0, 0.055)),
+    )
+    safety_stripe_front = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/SafetyStripeFront",
+        spawn=sim_utils.CuboidCfg(
+            size=(2.60, 0.08, 0.002),
+            visual_material=_SAFETY_YELLOW_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.75, -1.05, 0.001)),
+    )
+    safety_stripe_back = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/SafetyStripeBack",
+        spawn=sim_utils.CuboidCfg(
+            size=(2.60, 0.08, 0.002),
+            visual_material=_SAFETY_YELLOW_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.75, 1.05, 0.001)),
+    )
+    safety_stripe_left = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/SafetyStripeLeft",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.08, 2.18, 0.002),
+            visual_material=_SAFETY_YELLOW_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(-0.55, 0.0, 0.001)),
+    )
+    safety_stripe_right = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/SafetyStripeRight",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.08, 2.18, 0.002),
+            visual_material=_SAFETY_YELLOW_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(2.05, 0.0, 0.001)),
+    )
+    fence_panel = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/FencePanel",
+        spawn=sim_utils.CuboidCfg(
+            size=(2.40, 0.02, 0.90),
+            visual_material=_FENCE_PANEL_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.75, 1.0, 0.55)),
+    )
+    fence_post_left = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/FencePostLeft",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.04, 0.04, 1.00),
+            visual_material=_DARK_FRAME_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(-0.45, 1.0, 0.50)),
+    )
+    fence_post_right = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/FencePostRight",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.04, 0.04, 1.00),
+            visual_material=_DARK_FRAME_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(1.95, 1.0, 0.50)),
+    )
+    fence_top_rail = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/FenceTopRail",
+        spawn=sim_utils.CuboidCfg(
+            size=(2.44, 0.03, 0.04),
+            visual_material=_SAFETY_YELLOW_MATERIAL,
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.75, 1.0, 1.02)),
+    )
+
+
 @configclass
 class ActionsCfg:
     """Normalized joint position targets for six arm and two gripper joints."""
@@ -289,6 +498,15 @@ class M10id12EnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render_interval = self.decimation
         self.sim.default_visualizer_cfg = VisualizerCfg(eye=(2.2, -2.5, 1.8), lookat=(0.8, -0.1, 0.3))
         self.sim.physics = CellPhysicsCfg()
+        if _cinematic_enabled():
+            # Issue #9, fatia 1: SO a cena e a câmera mudam para o
+            # vídeo; observations/actions/events/rewards/terminations
+            # e a física seguem os mesmos objetos da tarefa default.
+            self.scene = CellSceneCfgCinematic(
+                num_envs=self.scene.num_envs,
+                env_spacing=self.scene.env_spacing)
+            self.sim.default_visualizer_cfg = VisualizerCfg(
+                eye=(1.95, -1.55, 1.02), lookat=(0.90, -0.05, 0.16))
 
 
 # The official external-project generator may choose any of these class names

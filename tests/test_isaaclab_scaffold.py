@@ -328,3 +328,145 @@ def test_notebook_benchmark_is_multi_seed_b3() -> None:
     assert "runtime_report['policy_success_rates'] = seed_rates" in builder
     assert "runtime_report['policy_success_rate_std']" in builder
     assert "'--seed', str(_seed)," in builder
+
+
+
+def _class_block(source: str, start: str, end: str) -> str:
+    i = source.index(start)
+    return source[i:source.index(end, i)]
+
+
+def _build_notebook_source(tmp_path, monkeypatch, extra_argv) -> str:
+    """Roda o builder de verdade (saida em tmp) e devolve o fonte."""
+    import importlib.util
+    import sys
+
+    builder_path = ROOT / "scripts/build_kaggle_notebook.py"
+    spec = importlib.util.spec_from_file_location("builder_cinematic",
+                                                  builder_path)
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    monkeypatch.setattr(builder, "KAGGLE_DIR", tmp_path)
+    monkeypatch.setattr(
+        sys, "argv",
+        ["build_kaggle_notebook.py", "--kaggle-user", "tester",
+         *extra_argv])
+    builder.main()
+    notebook = json.loads((tmp_path / builder.NOTEBOOK_NAME).read_text())
+    return "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+
+
+def _statement(source: str, start_marker: str, end_marker: str) -> str:
+    return source[source.index(start_marker):source.index(end_marker)]
+
+
+def test_builder_cinematic_video_flag_is_opt_in() -> None:
+    """Issue #9 fatia 1: a flag existe e o default não muda nada."""
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+
+    assert '"--cinematic-video", action="store_true"' in builder
+    assert "if args.cinematic_video:" in builder
+    assert "'--viz', 'newton_rtx'" in builder
+    assert "'--extra', 'ovrtx'" in builder
+    assert "cinematic_env['FANUC_CELL_CINEMATIC'] = '1'" in builder
+
+
+def test_builder_default_notebook_has_no_cinematic_traces(
+        tmp_path, monkeypatch) -> None:
+    source = _build_notebook_source(tmp_path, monkeypatch, [])
+
+    assert "'newton_gl', '--video" in source
+    assert "newton_rtx" not in source
+    assert "ovrtx" not in source
+    assert "FANUC_CELL_CINEMATIC" not in source
+    assert "cinematic_env" not in source
+
+
+def test_builder_cinematic_only_changes_playback(
+        tmp_path, monkeypatch) -> None:
+    default = _build_notebook_source(tmp_path / "d", monkeypatch, [])
+    cinematic = _build_notebook_source(
+        tmp_path / "c", monkeypatch, ["--cinematic-video"])
+
+    # Fora do playback, os dois notebooks são idênticos: o que antecede
+    # a definição do env cinematic e o que segue o fim do comando de
+    # playback não podem diferir (treino, benchmark, conversão...).
+    head_d, tail_d = default.split("    playback = run(", 1)
+    head_c, tail_c = cinematic.split("    cinematic_env = os.environ.copy()", 1)
+    assert head_d == head_c
+    end = "runtime_report['policy_playback_exit']"
+    assert tail_d[tail_d.index(end):] == tail_c[tail_c.index(end):]
+
+    playback = _statement(cinematic, "playback = run(", end)
+    assert "'--viz', 'newton_rtx', '--video', '--video_length', '400'" in playback
+    assert "'--extra', 'video', '--extra', 'ovrtx', 'isaaclab', 'play'" in playback
+    assert "cwd=project_dir, env=cinematic_env" in playback
+    assert "cinematic_env['FANUC_CELL_CINEMATIC'] = '1'" in cinematic
+
+    training = _statement(cinematic, "training = run(",
+                          "runtime_report['ppo_training_exit']")
+    assert "newton_rtx" not in training and "ovrtx" not in training
+    evaluation = _statement(cinematic, "evaluation = run(",
+                            "runtime_report['policy_evaluation_exit']")
+    assert "'--viz', 'none'" in evaluation
+    assert "newton_rtx" not in evaluation and "ovrtx" not in evaluation
+    # O token do path tracer aparece uma única vez no notebook inteiro.
+    assert cinematic.count("newton_rtx") == 1
+
+
+def test_cinematic_scene_variant_keeps_physics_and_mdp() -> None:
+    """Issue #9 fatia 1: a variante cinematic é camada visual pura.
+
+    - A cena default não ganha NENHUM material (byte a byte a mesma).
+    - belt/pedestal/part da variante: mesma geometria/colisão/massa
+      do default, só com visual_material a mais.
+    - Todo prim novo da variante é decorativo: sem collision_props e
+      sem rigid_props (visual-only por construção do spawner).
+    - MDP/actions/rewards/events não sabem que a variante existe.
+    """
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    base = _class_block(env_cfg, "class CellSceneCfg(",
+                        "def _cinematic_enabled")
+    assert "visual_material" not in base
+    assert "CellSceneCfgCinematic" not in base
+
+    assert 'os.environ.get("FANUC_CELL_CINEMATIC", "0") == "1"' in env_cfg
+    cine = _class_block(env_cfg, "class CellSceneCfgCinematic(",
+                        "@configclass\nclass ActionsCfg")
+
+    for name, size in (("belt", "(0.53, 0.84, 0.11)"),
+                       ("place_pedestal", "(0.36, 0.32, 0.04)"),
+                       ("part", "(0.08, 0.08, 0.08)")):
+        block = _class_block(cine, f"    {name} = ", "\n    )\n")
+        assert f"size={size}" in block
+        assert "collision_props=sim_utils.CollisionPropertiesCfg()" in block
+        assert "visual_material=" in block
+    part_block = _class_block(cine, "    part = ", "\n    )\n")
+    assert "MassPropertiesCfg(mass=0.35)" in part_block
+    assert "RigidBodyPropertiesCfg()" in part_block
+
+    decor = ("belt_top", "belt_rail_left", "belt_rail_right",
+             "belt_roller_in", "belt_roller_out",
+             "safety_stripe_front", "safety_stripe_back",
+             "safety_stripe_left", "safety_stripe_right",
+             "fence_panel", "fence_post_left", "fence_post_right",
+             "fence_top_rail", "key_light")
+    for name in decor:
+        block = _class_block(cine, f"    {name} = ", "\n    )\n")
+        assert "collision_props" not in block, name
+        assert "rigid_props" not in block, name
+
+    # Seleção só no __post_init__ da env cfg, sob a variável de ambiente.
+    post_init = env_cfg[env_cfg.index("def __post_init__"):]
+    assert "if _cinematic_enabled():" in post_init
+    assert "CellSceneCfgCinematic(" in post_init
+
+    for cfg_cls in ("ActionsCfg", "ObservationsCfg", "EventsCfg",
+                    "RewardsCfg", "CurriculumCfg", "TerminationsCfg",
+                    "CellPhysicsCfg"):
+        block = _class_block(env_cfg, f"class {cfg_cls}",
+                             "@configclass\nclass ")
+        assert "Cinematic" not in block, cfg_cls
+    physics = _class_block(env_cfg, "class CellPhysicsCfg", "@configclass")
+    assert "default: OvPhysxCfg = ovphysx" in physics

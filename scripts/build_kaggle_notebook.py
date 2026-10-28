@@ -36,6 +36,7 @@ def bundled_project() -> str:
         "scripts/collect_demos.py",
         "scripts/pretrain_bc.py",
         "scripts/train_ppo_bc.py",
+        "scripts/eval_bc_actor.py",
         "tests/test_kinematics.py",
         "tests/test_task.py",
         "tests/test_static_clearance.py",
@@ -105,9 +106,27 @@ def main() -> None:
     )
     parser.add_argument("--bc-episodes", type=int, default=200,
                         help="Episódios de demonstração coletados (com --bc-warmstart).")
+    parser.add_argument("--bc-exp1", action="store_true",
+                        help="Experimento 1 da issue #8 (exige "
+                             "--bc-warmstart): Estágio A avalia o ator "
+                             "BC puro em 200 episódios com seeds novas "
+                             "(2000+); Estágio B roda o PPO warm-start "
+                             "PROTEGIDO (entropia 0, crítico aquecido "
+                             "com o ator congelado por 50 iterações).")
+    parser.add_argument(
+        "--cinematic-video", action="store_true",
+        help="Vídeo industrial fatia 1 (issue #9): SO o playback muda "
+             "— viz newton_gl -> newton_rtx (path tracer OVRTX; extra "
+             "'ovrtx' do workspace pinado v3.0.0, mesmo mecanismo dos "
+             "extras 'ovphysx'/'video') e FANUC_CELL_CINEMATIC=1 no "
+             "env do play (cena cinematic do env_cfg). Treino e "
+             "benchmark não mudam. Default desligado.",
+    )
     args = parser.parse_args()
     if args.bc_warmstart and args.physics != "ovphysx":
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
+    if args.bc_exp1 and not args.bc_warmstart:
+        parser.error("--bc-exp1 exige --bc-warmstart")
     if args.bc_warmstart and args.train_num_envs == 64 \
             and args.train_max_iterations == 500:
         # Regressao da BC v6: sem as flags, o treino warm-start saiu
@@ -562,7 +581,30 @@ def main() -> None:
             "                 project_dir / 'scripts' / 'pretrain_bc.py')\n"
             "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/train_ppo_bc.py',\n"
             "                 project_dir / 'scripts' / 'train_ppo_bc.py')\n"
+            "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/eval_bc_actor.py',\n"
+            "                 project_dir / 'scripts' / 'eval_bc_actor.py')\n"
         )
+        if args.bc_exp1:
+            # Estágio A do Experimento 1 (issue #8): o ator BC puro,
+            # sem PPO, em 200 episódios com seeds 2000+ (fora das
+            # demos). Diagnóstico, não portão: o resultado entra no
+            # runtime-report e o Estágio B roda de qualquer forma.
+            bc_block += (
+                "    bc_eval = run(['uv', 'run', '--extra', 'ovphysx', 'python',\n"
+                "                    str(project_dir / 'scripts' / 'eval_bc_actor.py'),\n"
+                "                    '--bc-weights', '/kaggle/working/bc-actor.npz',\n"
+                "                    '--episodes', '200', '--seed', '2000',\n"
+                "                    '--report', '/kaggle/working/bc-actor-eval.json'],\n"
+                "                   cwd=source_dir, env=baseline_env)\n"
+                "    runtime_report['bc_actor_eval_exit'] = bc_eval.returncode\n"
+                "    runtime_report['bc_actor_eval_stdout'] = bc_eval.stdout[-8000:]\n"
+                "    runtime_report['bc_actor_eval_stderr'] = bc_eval.stderr[-8000:]\n"
+                "    print(bc_eval.stdout[-8000:])\n"
+                "    if bc_eval.returncode != 0:\n"
+                "        save_report()\n"
+                "        raise RuntimeError('BC actor eval (Exp. 1 stage A) failed: ' + bc_eval.stderr[-4000:])\n"
+                "    runtime_report['bc_actor_eval'] = json.loads(Path('/kaggle/working/bc-actor-eval.json').read_text())\n"
+            )
         for cell in notebook["cells"]:
             source = "".join(cell["source"])
             if "diagnose_training_nan.py')" in source and "collect_demos" not in source:
@@ -582,6 +624,13 @@ def main() -> None:
                     r"'--seed', '7', 'physics=ovphysx'\], cwd=project_dir\)",
                     "'--seed', '7'], cwd=project_dir)",
                     source, count=1)
+                if args.bc_exp1:
+                    # Estágio B protegido (issue #8): entropia 0 e
+                    # crítico aquecido com o ator congelado.
+                    source = source.replace(
+                        "'--seed', '7'], cwd=project_dir)",
+                        "'--seed', '7', '--protected', "
+                        "'--warmup-iters', '50'], cwd=project_dir)", 1)
                 # Playback e benchmark com o checkpoint EXPLICITO: o
                 # '--checkpoint latest' do entrypoint unificado exige
                 # um manifesto de run que so o `isaaclab train`
@@ -592,6 +641,40 @@ def main() -> None:
                 source = source.replace(
                     "'--checkpoint', 'latest',",
                     "'--checkpoint', str(checkpoints[-1]),")
+            cell["source"] = source.splitlines(keepends=True)
+    # Vídeo industrial fatia 1 (issue #9), só com --cinematic-video:
+    # mexe EXCLUSIVAMENTE no comando de playback da célula principal —
+    # viz newton_rtx + extra ovrtx + env FANUC_CELL_CINEMATIC=1 para o
+    # subprocesso do play (a cena cinematic do env_cfg só acorda com a
+    # variável). As âncoras foram escolhidas para sobreviver aos
+    # outros modos do builder (física newton remove o par ovphysx e
+    # troca o token physics=; o BC troca o checkpoint): por isso o
+    # alvo é '--extra', 'video', 'isaaclab', 'play' (único do
+    # playback) e o env entra por posição (primeiro cwd=project_dir
+    # depois do 'playback = run('), sem depender do rabo do comando.
+    # Sem a flag, nada aqui roda e o notebook é o de sempre.
+    if args.cinematic_video:
+        env_def = (
+            "    cinematic_env = os.environ.copy()\n"
+            "    cinematic_env['FANUC_CELL_CINEMATIC'] = '1'\n"
+        )
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if "playback = run(" not in source:
+                continue
+            source = source.replace(
+                "    playback = run(",
+                env_def + "    playback = run(", 1)
+            source = source.replace(
+                "'--extra', 'video', 'isaaclab', 'play'",
+                "'--extra', 'video', '--extra', 'ovrtx', "
+                "'isaaclab', 'play'", 1)
+            source = source.replace(
+                "'--viz', 'newton_gl'", "'--viz', 'newton_rtx'", 1)
+            start = source.index("playback = run(")
+            end = source.index("cwd=project_dir)", start) \
+                + len("cwd=project_dir")
+            source = source[:end] + ", env=cinematic_env" + source[end:]
             cell["source"] = source.splitlines(keepends=True)
     notebook_path = KAGGLE_DIR / NOTEBOOK_NAME
     notebook_path.write_text(json.dumps(notebook, indent=1) + "\n")
