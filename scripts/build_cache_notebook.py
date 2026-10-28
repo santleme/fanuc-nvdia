@@ -2,10 +2,11 @@
 
 Issue #12 (B4): every project kernel pays clone + ``uv sync`` of
 Isaac Lab v3.0.0 (~4–6 min). This constructor kernel pays it ONCE,
-warms the extras the project kernels resolve, snapshots the installed
-tree + the uv cache into the dataset layout (``scripts/
-prepare_isaac_cache.py`` + ``fanuc_cell.isaac_cache``) and leaves the
-snapshot as its output — the Kaggle dataset is created from that
+warms the extras the project kernels resolve, MOVES the installed
+tree + the uv cache into the dataset layout (rename, no copy —
+``scripts/prepare_isaac_cache.py`` + ``fanuc_cell.isaac_cache``;
+the v2 run died with Errno 28 copying them) and leaves the result
+as its output — the Kaggle dataset is created from that
 output (run step, documented in ``docs/isaac-cache.md``), and the
 training kernels then build with ``--isaac-cache-dataset``.
 
@@ -65,8 +66,9 @@ def main() -> None:
                 "# FANUC — construtor do cache da instalação do Isaac Lab\n\n"
                 "Issue #12 (B4): instala o Isaac Lab 3.0.0 UMA vez "
                 "(clone + `uv sync` com `UV_LINK_MODE=copy` + extras "
-                "aquecidos), fotografa a árvore instalada e o cache do "
-                "uv no layout do dataset e deixa o snapshot como saída. "
+                "aquecidos), move a árvore instalada e o cache do "
+                "uv (rename, sem duplicar) para o layout do dataset e "
+                "deixa o resultado como saída. "
                 "O dataset Kaggle nasce desta saída; os kernels do "
                 "projeto passam a montar com `--isaac-cache-dataset` e "
                 "restauram em vez de instalar — com fallback automático "
@@ -108,6 +110,11 @@ def main() -> None:
                 "# vira cache. UV_LINK_MODE=copy deixa a .venv\n"
                 "# autossuficiente (sem links para o cache do uv).\n"
                 "os.environ['UV_LINK_MODE'] = 'copy'\n"
+                "# O cache do uv nasce sob /kaggle/working: mesma\n"
+                "# partição da árvore e da saída, para o snapshot\n"
+                "# MOVER (rename) em vez de copiar — a cópia estourou\n"
+                "# o disco da sessão na tentativa v2 (Errno 28).\n"
+                "os.environ['UV_CACHE_DIR'] = '/kaggle/working/uv-cache'\n"
                 "uv_probe = run(['uv', '--version'])\n"
                 "if uv_probe.returncode != 0:\n"
                 "    install_uv = run([sys.executable, '-m', 'pip', 'install', 'uv'])\n"
@@ -137,11 +144,17 @@ def main() -> None:
             ),
             code(
                 "# Snapshot no layout do dataset + verificação pelo\n"
-                "# mesmo portão que o consumidor aplica.\n"
+                "# mesmo portão que o consumidor aplica. Medição\n"
+                "# permanente no log ANTES do snapshot: árvore e\n"
+                "# cache do uv dimensionados (du) — problema futuro\n"
+                "# de disco aparece medido, não como Errno 28.\n"
+                "run(['du', '-sh', '/kaggle/working/IsaacLab',\n"
+                "     '/kaggle/working/uv-cache'])\n"
                 "prep_env = os.environ.copy()\n"
                 "prep_env['PYTHONPATH'] = '/kaggle/working/fanuc-cell/src' + os.pathsep + prep_env.get('PYTHONPATH', '')\n"
                 "prep = run([sys.executable, '/kaggle/working/fanuc-cell/scripts/prepare_isaac_cache.py',\n"
                 "            '--source-dir', '/kaggle/working/IsaacLab',\n"
+                "            '--uv-cache-dir', '/kaggle/working/uv-cache',\n"
                 "            '--out', '/kaggle/working/isaaclab-cache',\n"
                 "            '--created-by', 'fanuc-isaaclab-cache-builder'], env=prep_env)\n"
                 "report['prepare_exit'] = prep.returncode\n"

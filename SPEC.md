@@ -1237,6 +1237,26 @@ corrida** (aceitação da issue): rodar o construtor, criar o dataset
 `fanuc-isaaclab-cache` da saída dele e medir a primeira corrida
 completa restaurada contra a linha de base clone+sync.
 
+**Correção do snapshot (tentativa v2 do construtor, 28/10/2026):**
+a v1 morreu na aspa do builder (corrigida no PR #26); a v2 instalou
+tudo (clone 3,7 s, sync 104,2 s, aquecimento 89,6 s) e morreu na
+célula do snapshot com `OSError: [Errno 28]` — o snapshot **copiava**
+a árvore instalada + o cache do uv para a saída e a duplicação
+estourou o disco da sessão (parcial > 1,3 GB); dataset não criado.
+Desenho corrigido (detalhe em `docs/isaac-cache.md`): o snapshot
+passa a **mover** (rename na mesma partição, pegada ~zero) em vez de
+copiar — o construtor define `UV_CACHE_DIR=/kaggle/working/uv-cache`
+para as duas origens nascerem na partição da saída; poda prévia de
+`__pycache__`/`.git`/`logs` (a sonda de import é o aquecimento, sobre
+a instalação viva, antes do snapshot); `du` de árvore e cache
+impresso antes do snapshot (medição permanente); e portão
+`snapshot_size_problems` com o limiar declarado
+`SNAPSHOT_MAX_TOTAL_BYTES` (32 GiB) recusando **antes** de mover.
+Plano de snapshot como dados no núcleo puro (`cache_snapshot_plan`),
+espelho do plano de restauração. Formato do snapshot e lado do
+consumidor **não mudam**. Retomada: rebuild + push do construtor
+(v3) → corrida → dataset → primeira corrida `restored`.
+
 ### Protocolo do spike B5 — probe+baseline num boot único (issue #14, pré-registrado em 27/10/2026)
 
 Desenho: `scripts/probe_and_baseline.py` roda os dois estágios NO

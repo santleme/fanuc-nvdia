@@ -26,7 +26,9 @@ from fanuc_cell.isaac_cache import (
     UV_CACHE_PART,
     build_cache_manifest,
     cache_restore_plan,
+    cache_snapshot_plan,
     find_cache_mount,
+    snapshot_size_problems,
     validate_cache_manifest,
 )
 
@@ -130,6 +132,10 @@ def test_prepare_snapshot_layout_manifest_and_verify(tmp_path) -> None:
     assert (out / UV_CACHE_PART / "wheel.bin").is_file()
     assert manifest["parts"][UV_CACHE_PART] == 10
     assert prep.verify_cache(out) == []
+    # Snapshot é MOVIMENTO (correção da tentativa v2, Errno 28 por
+    # cópia): as origens não existem mais — nada foi duplicado.
+    assert not source.exists()
+    assert not uv_cache.exists()
 
 
 def test_prepare_verify_rejects_tree_without_venv(tmp_path) -> None:
@@ -141,6 +147,121 @@ def test_prepare_verify_rejects_tree_without_venv(tmp_path) -> None:
     broken = _write_mount(tmp_path, _manifest())
     assert any(".venv" in p for p in prep.verify_cache(broken))
     assert prep.verify_cache(tmp_path / "nada") != []
+
+
+def _load_prepare():
+    spec = importlib.util.spec_from_file_location(
+        "prepare_isaac_cache", ROOT / "scripts/prepare_isaac_cache.py")
+    prep = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(prep)
+    return prep
+
+
+def test_snapshot_plan_is_prune_then_move_as_data() -> None:
+    # O plano do snapshot (espelho do plano de restauração): podar
+    # primeiro, MOVER depois — nenhuma ação de cópia existe no plano.
+    plan = cache_snapshot_plan(
+        source_dir="/kaggle/working/IsaacLab",
+        uv_cache_dir="/kaggle/working/uv-cache",
+        out_dir="/kaggle/working/isaaclab-cache")
+    assert [step["action"] for step in plan] == [
+        "prune", "prune", "move", "move"]
+    prune_lab, prune_uv = plan[0], plan[1]
+    assert prune_lab["root"] == "/kaggle/working/IsaacLab"
+    assert prune_lab["dir_names"] == ["__pycache__"]
+    assert prune_lab["drop_root_names"] == [".git", "logs"]
+    assert prune_uv["root"] == "/kaggle/working/uv-cache"
+    assert prune_uv["dir_names"] == ["__pycache__"]
+    assert prune_uv["drop_root_names"] == []
+    moves = {step["part"]: step for step in plan if step["action"] == "move"}
+    assert moves[ISAACLAB_PART]["source"] == "/kaggle/working/IsaacLab"
+    assert moves[ISAACLAB_PART]["dest"] == "/kaggle/working/isaaclab-cache/isaaclab"
+    assert moves[UV_CACHE_PART]["source"] == "/kaggle/working/uv-cache"
+    assert moves[UV_CACHE_PART]["dest"] == "/kaggle/working/isaaclab-cache/uv-cache"
+
+
+def test_snapshot_plan_omits_uv_cache_when_absent() -> None:
+    plan = cache_snapshot_plan(
+        source_dir="/s", uv_cache_dir="/u", out_dir="/o",
+        uv_cache_exists=False)
+    assert [step["action"] for step in plan] == ["prune", "move"]
+    assert plan[-1]["dest"] == "/o/isaaclab"
+
+
+def test_snapshot_size_problems_gate() -> None:
+    assert snapshot_size_problems(
+        {ISAACLAB_PART: 10, UV_CACHE_PART: 5}, max_total_bytes=15) == []
+    problems = snapshot_size_problems(
+        {ISAACLAB_PART: 16}, max_total_bytes=15)
+    assert len(problems) == 1
+    assert "16" in problems[0] and "15" in problems[0]
+    # Sem a parte obrigatória, não há snapshot que preste.
+    assert snapshot_size_problems({}, max_total_bytes=15)
+    # O limiar declarado é o default e a fronteira exata passa.
+    assert isaac_cache.SNAPSHOT_MAX_TOTAL_BYTES == 32 * 1024**3
+    assert snapshot_size_problems(
+        {ISAACLAB_PART: isaac_cache.SNAPSHOT_MAX_TOTAL_BYTES}) == []
+
+
+def test_prepare_snapshot_moves_prunes_and_verifies(tmp_path) -> None:
+    prep = _load_prepare()
+    source = tmp_path / "IsaacLab"
+    (source / ".venv" / "bin").mkdir(parents=True)
+    (source / ".venv" / "bin" / "python").write_bytes(b"p" * 9)
+    pycache = source / ".venv" / "lib" / "__pycache__"
+    pycache.mkdir(parents=True)
+    (pycache / "mod.cpython-312.pyc").write_bytes(b"c" * 5)
+    (source / "pyproject.toml").write_bytes(b"t" * 10)
+    (source / ".git").mkdir()
+    (source / ".git" / "HEAD").write_bytes(b"g" * 4)
+    (source / "logs").mkdir()
+    (source / "logs" / "run.log").write_bytes(b"l" * 3)
+    uv_cache = tmp_path / "uv-cache"
+    (uv_cache / "archive" / "__pycache__").mkdir(parents=True)
+    (uv_cache / "archive" / "__pycache__" / "x.pyc").write_bytes(b"c" * 4)
+    (uv_cache / "wheel.bin").write_bytes(b"w" * 10)
+
+    out = tmp_path / "isaaclab-cache"
+    manifest = prep.snapshot_cache(
+        source_dir=source, uv_cache_dir=uv_cache, out_dir=out,
+        created_by="test-builder")
+
+    # Movimento, não cópia: origens somem, destino tem o conteúdo.
+    assert not source.exists()
+    assert not uv_cache.exists()
+    assert (out / ISAACLAB_PART / ".venv" / "bin" / "python").is_file()
+    # Poda: .git, logs e TODO __pycache__ ficam fora do snapshot.
+    assert not (out / ISAACLAB_PART / ".git").exists()
+    assert not (out / ISAACLAB_PART / "logs").exists()
+    assert list(out.rglob("__pycache__")) == []
+    # Manifesto mede o destino JÁ podado/movido.
+    assert manifest["parts"] == {ISAACLAB_PART: 19, UV_CACHE_PART: 10}
+    assert prep.verify_cache(out) == []
+
+
+def test_prepare_snapshot_refuses_oversize_before_touching_trees(
+        tmp_path) -> None:
+    prep = _load_prepare()
+    source = tmp_path / "IsaacLab"
+    (source / ".venv" / "__pycache__").mkdir(parents=True)
+    (source / ".venv" / "bin").mkdir(parents=True)
+    (source / ".venv" / "bin" / "python").write_bytes(b"p" * 9)
+    (source / ".venv" / "__pycache__" / "m.pyc").write_bytes(b"c" * 5)
+    uv_cache = tmp_path / "uv-cache"
+    uv_cache.mkdir()
+    (uv_cache / "wheel.bin").write_bytes(b"w" * 10)
+    out = tmp_path / "isaaclab-cache"
+
+    with pytest.raises(RuntimeError, match="ANTES de mover"):
+        prep.snapshot_cache(
+            source_dir=source, uv_cache_dir=uv_cache, out_dir=out,
+            created_by="test-builder", max_total_bytes=1)
+
+    # A recusa é ANTES de qualquer mutação: nem poda, nem movimento.
+    assert (source / ".venv" / "bin" / "python").is_file()
+    assert (source / ".venv" / "__pycache__" / "m.pyc").is_file()
+    assert (uv_cache / "wheel.bin").is_file()
+    assert not (out / ISAACLAB_PART).exists()
 
 
 def _load_builder(module_name: str, filename: str):
@@ -281,6 +402,27 @@ def test_cache_builder_kernel_installs_warms_and_snapshots(
         assert f"'--extra', '{extra}'" in source
     assert "prepare_isaac_cache.py" in source
     assert "isaac-cache-manifest.json" in source
+
+
+def test_cache_builder_notebook_measures_and_born_uv_cache(
+        tmp_path, monkeypatch) -> None:
+    """Correção da tentativa v2 (issue #12): o construtor mede (du)
+    árvore e cache do uv ANTES do snapshot e o cache do uv nasce sob
+    /kaggle/working (UV_CACHE_DIR) — mesma partição da saída, para o
+    snapshot mover em vez de copiar (a cópia deu Errno 28)."""
+    builder = _load_builder("builder_cache_measure", "build_cache_notebook.py")
+    monkeypatch.setattr(builder, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(
+        sys, "argv", ["build_cache_notebook.py", "--kaggle-user", "tester"])
+    builder.main()
+
+    notebook = json.loads((tmp_path / builder.NOTEBOOK_NAME).read_text())
+    source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+    assert "UV_CACHE_DIR'] = '/kaggle/working/uv-cache'" in source
+    assert "'du', '-sh'" in source
+    assert "'--uv-cache-dir', '/kaggle/working/uv-cache'" in source
+    # A medição entra no log ANTES da chamada do prepare.
+    assert source.index("'du', '-sh'") < source.index("prepare_isaac_cache.py',")
 
 
 def test_cache_builder_notebook_cells_all_compile(

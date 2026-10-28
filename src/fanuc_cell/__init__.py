@@ -19,9 +19,12 @@ from .gripper_threshold import (
 from .isaac_cache import (
     CACHE_FORMAT_VERSION,
     ISAACLAB_REF,
+    SNAPSHOT_MAX_TOTAL_BYTES,
     build_cache_manifest,
     cache_restore_plan,
+    cache_snapshot_plan,
     find_cache_mount,
+    snapshot_size_problems,
     validate_cache_manifest,
 )
 from .kinematics import M10ID12_APPROX, SerialArm, inverse_kinematics, inverse_kinematics_pose
@@ -36,6 +39,7 @@ __all__ = [
     "DEFAULT_BENCHMARK_SEEDS",
     "ISAACLAB_REF",
     "M10ID12_APPROX",
+    "SNAPSHOT_MAX_TOTAL_BYTES",
     "AnchorSchedule",
     "DemoBuffer",
     "PickPlaceEpisode",
@@ -45,6 +49,7 @@ __all__ = [
     "anchor_weight_at",
     "build_cache_manifest",
     "cache_restore_plan",
+    "cache_snapshot_plan",
     "find_cache_mount",
     "format_rate_summary",
     "gate_beta",
@@ -55,6 +60,7 @@ __all__ = [
     "make_rollout_logger",
     "recommend_threshold",
     "rerun_available",
+    "snapshot_size_problems",
     "summarize_rates",
     "sweep_thresholds",
     "validate_cache_manifest",
