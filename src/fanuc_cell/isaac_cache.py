@@ -20,6 +20,15 @@ decisão de restauração vive copiada no notebook:
 - ``cache_restore_plan``: o plano de restauração como DADOS — pares
   (origem no mount, destino absoluto, merge?) — para o notebook só
   executar cópias e os testes conferirem a montagem sem Kaggle.
+- ``cache_snapshot_plan``: o plano de snapshot do construtor como
+  DADOS — poda seguida de MOVIMENTOS (rename), nunca cópias. A
+  tentativa v2 do construtor (28/10/2026) morreu com ``Errno 28``
+  porque o snapshot COPIAVA a árvore instalada + o cache do uv para
+  a saída, duplicando vários GB no disco da sessão. Mover na mesma
+  partição tem pegada extra ~zero.
+- ``snapshot_size_problems``: o portão de tamanho do snapshot —
+  medição acima de ``SNAPSHOT_MAX_TOTAL_BYTES`` recusa o snapshot
+  ANTES de qualquer movimento, com mensagem clara.
 
 Layout do dataset (ver ``docs/isaac-cache.md``)::
 
@@ -63,6 +72,24 @@ WARMED_EXTRAS = ("ovphysx", "video", "importers", "ovrtx")
 #: autossuficiente (sem hardlinks/symlinks para o cache do uv, que
 #: mora em outro filesystem no mount do dataset).
 UV_LINK_MODE = "copy"
+
+#: Diretórios podados de qualquer árvore antes do snapshot: caches
+#: de bytecode são regeneráveis no primeiro import e a poda não
+#: invalida a sonda (ela roda sobre a instalação viva, no aquecimento,
+#: antes do snapshot).
+SNAPSHOT_PRUNE_DIR_NAMES = ("__pycache__",)
+
+#: Nomes removidos da RAIZ da árvore do Isaac Lab antes do snapshot
+#: (na cópia antiga eram só excluídos; no movimento, saem do disco):
+#: o .git do clone (nada roda git sobre a árvore restaurada) e logs
+#: de corridas do construtor.
+SNAPSHOT_DROP_ROOT_NAMES = (".git", "logs")
+
+#: Limiar declarado do snapshot: medição (árvore + cache do uv) acima
+#: disto ameaça o limite de saída/dataset do Kaggle e o prepare
+#: recusa ANTES de mover qualquer coisa — a lição da tentativa v2 é
+#: falhar cedo e claro, nunca com Errno 28 no meio de uma operação.
+SNAPSHOT_MAX_TOTAL_BYTES = 32 * 1024**3
 
 
 def build_cache_manifest(
@@ -178,3 +205,103 @@ def cache_restore_plan(
             }
         )
     return plan
+
+
+def cache_snapshot_plan(
+    *,
+    source_dir: str | Path,
+    uv_cache_dir: str | Path,
+    out_dir: str | Path,
+    uv_cache_exists: bool = True,
+) -> list[dict]:
+    """Plano de snapshot do construtor como dados: podar, depois MOVER.
+
+    O snapshot NÃO copia (a cópia estourou o disco da sessão na
+    tentativa v2 — ``Errno 28`` com a saída parcial já > 1,3 GB):
+    cada parte é renomeada (``os.replace``) da origem para o layout
+    de saída, o que exige origem e destino na mesma partição e tem
+    pegada extra ~zero. O construtor garante a mesma partição por
+    construção: a árvore nasce em ``/kaggle/working/IsaacLab`` e o
+    cache do uv nasce sob ``/kaggle/working`` (``UV_CACHE_DIR``).
+
+    Passos, em ordem:
+
+    - ``prune`` por parte: remover ``SNAPSHOT_PRUNE_DIR_NAMES`` em
+      qualquer profundidade e, na árvore do Isaac Lab, também
+      ``SNAPSHOT_DROP_ROOT_NAMES`` da raiz.
+    - ``move`` por parte: ``source`` → ``out_dir/<parte>``.
+
+    A parte ``uv-cache`` só entra se ``uv_cache_exists`` — espelho
+    do plano de restauração, que só a repõe se estiver no dataset.
+    """
+    source_dir = Path(source_dir)
+    uv_cache_dir = Path(uv_cache_dir)
+    out_dir = Path(out_dir)
+    plan: list[dict] = [
+        {
+            "action": "prune",
+            "part": ISAACLAB_PART,
+            "root": str(source_dir),
+            "dir_names": list(SNAPSHOT_PRUNE_DIR_NAMES),
+            "drop_root_names": list(SNAPSHOT_DROP_ROOT_NAMES),
+        }
+    ]
+    if uv_cache_exists:
+        plan.append(
+            {
+                "action": "prune",
+                "part": UV_CACHE_PART,
+                "root": str(uv_cache_dir),
+                "dir_names": list(SNAPSHOT_PRUNE_DIR_NAMES),
+                "drop_root_names": [],
+            }
+        )
+    plan.append(
+        {
+            "action": "move",
+            "part": ISAACLAB_PART,
+            "source": str(source_dir),
+            "dest": str(out_dir / ISAACLAB_PART),
+        }
+    )
+    if uv_cache_exists:
+        plan.append(
+            {
+                "action": "move",
+                "part": UV_CACHE_PART,
+                "source": str(uv_cache_dir),
+                "dest": str(out_dir / UV_CACHE_PART),
+            }
+        )
+    return plan
+
+
+def snapshot_size_problems(
+    measurements: dict[str, int],
+    *,
+    max_total_bytes: int = SNAPSHOT_MAX_TOTAL_BYTES,
+) -> list[str]:
+    """Portão de tamanho do snapshot (``[]`` = pode mover).
+
+    ``measurements`` é o mapa parte → bytes medidos ANTES do
+    snapshot (a mesma medição que o construtor imprime no log).
+    Medição acima do limiar declarado recusa o snapshot antes de
+    qualquer movimento: mesmo sem duplicar, um volume grande demais
+    ameaça o limite de saída do Kaggle — e a recusa é uma mensagem,
+    não um ``Errno 28`` no meio de uma cópia.
+    """
+    problems: list[str] = []
+    if ISAACLAB_PART not in measurements:
+        problems.append(
+            f"medição sem a parte obrigatória {ISAACLAB_PART!r} "
+            "(snapshot de quê?)"
+        )
+    total = sum(measurements.values())
+    if total > max_total_bytes:
+        problems.append(
+            f"snapshot medido com {total} bytes > limiar declarado "
+            f"de {max_total_bytes} bytes — recusado ANTES de mover; "
+            "investigar o crescimento da árvore/cache em vez de "
+            "forçar a saída"
+        )
+    return problems
