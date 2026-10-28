@@ -30,6 +30,8 @@ def bundled_project() -> str:
         "src/fanuc_cell/demos.py",
         "src/fanuc_cell/bc.py",
         "src/fanuc_cell/rerun_log.py",
+        "src/fanuc_cell/isaac_cache.py",
+        "scripts/prepare_isaac_cache.py",
         "scripts/render_demo.py",
         "scripts/run_scripted_demo.py",
         "scripts/diagnose_training_nan.py",
@@ -122,7 +124,23 @@ def main() -> None:
              "env do play (cena cinematic do env_cfg). Treino e "
              "benchmark não mudam. Default desligado.",
     )
+    parser.add_argument(
+        "--isaac-cache-dataset", default=None,
+        metavar="USUARIO/DATASET",
+        help="Cache da instalação do Isaac Lab (issue #12/B4): slug "
+             "do dataset com a árvore instalada (gerado pelo kernel "
+             "construtor fanuc-isaaclab-cache-builder). O kernel "
+             "monta o dataset e restaura a instalação em vez de "
+             "clone+sync — com fallback automático para a instalação "
+             "completa se o cache estiver ausente, for de outra "
+             "versão ou falhar na sonda de import. Default: sem "
+             "cache, o notebook é o de sempre.",
+    )
     args = parser.parse_args()
+    if args.isaac_cache_dataset and "/" not in args.isaac_cache_dataset:
+        parser.error("--isaac-cache-dataset exige o slug completo "
+                     "USUARIO/DATASET (é ele que vira o mount "
+                     "/kaggle/input/<dataset>)")
     if args.bc_warmstart and args.physics != "ovphysx":
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
     if args.bc_exp1 and not args.bc_warmstart:
@@ -676,6 +694,93 @@ def main() -> None:
                 + len("cwd=project_dir")
             source = source[:end] + ", env=cinematic_env" + source[end:]
             cell["source"] = source.splitlines(keepends=True)
+    # Cache da instalação do Isaac Lab (issue #12/B4), só com
+    # --isaac-cache-dataset: reescreve o trecho clone+sync da célula
+    # principal. O bloco novo tenta restaurar a árvore instalada do
+    # dataset montado (decisão do núcleo puro fanuc_cell.isaac_cache:
+    # manifesto válido + plano de cópia) e confirma com a sonda de
+    # import; QUALQUER falha — dataset ausente, manifesto de outra
+    # versão, cópia ou sonda quebrada — executa o trecho ORIGINAL,
+    # extraído da própria célula e reindentado sob o `if not`, então
+    # o fallback é literalmente a instalação de sempre, sem cópia
+    # divergente para manter. O estágio ganha timings ('isaac_setup')
+    # e o relatório registra o modo em runtime_report['isaac_cache']
+    # — é a medição da aceitação da issue. Sem a flag, nada aqui roda
+    # e o notebook é byte a byte o de sempre.
+    if args.isaac_cache_dataset:
+        dataset_name = args.isaac_cache_dataset.rsplit("/", 1)[-1]
+        start_marker = "    source_dir = Path('/kaggle/working/IsaacLab')\n"
+        end_marker = (
+            "        raise RuntimeError('Isaac Lab dependency "
+            "installation failed: ' + sync.stderr[-6000:])\n"
+        )
+        header_lines = [
+            "    source_dir = Path('/kaggle/working/IsaacLab')\n",
+            "    # Cache da instalacao (issue #12/B4): restaura a arvore\n",
+            "    # instalada do dataset se o manifesto validar; a sonda\n",
+            "    # de import e o portao final. Qualquer falha cai na\n",
+            "    # instalacao completa (o trecho original, abaixo).\n",
+            "    stage_start('isaac_setup')\n",
+            "    if '/kaggle/working/fanuc-cell/src' not in sys.path:\n",
+            "        sys.path.insert(0, '/kaggle/working/fanuc-cell/src')\n",
+            "    _cache_info = {'dataset': '__DATASET__', 'mode': 'absent'}\n",
+            "    _cache_restored = False\n",
+            "    try:\n",
+            "        from fanuc_cell.isaac_cache import cache_restore_plan, find_cache_mount\n",
+            "        _cache_override = os.environ.get('FANUC_ISAAC_CACHE_DIR')\n",
+            "        _cache_candidates = ([_cache_override] if _cache_override else []) + ['__MOUNT__']\n",
+            "        _cache_mount = find_cache_mount(_cache_candidates)\n",
+            "        if _cache_mount is not None:\n",
+            "            _cache_started = time.perf_counter()\n",
+            "            for _step in cache_restore_plan(_cache_mount, working_dir='/kaggle/working', home_dir=str(Path.home())):\n",
+            "                _dest = Path(_step['dest'])\n",
+            "                if _dest.exists() and not _step['merge']:\n",
+            "                    shutil.rmtree(_dest)\n",
+            "                shutil.copytree(_step['source'], _dest, symlinks=True, dirs_exist_ok=_step['merge'])\n",
+            "            _probe = run(['uv', 'run', '--no-sync', 'python', '-c', 'import isaaclab, torch'], cwd=source_dir)\n",
+            "            runtime_report['isaac_cache_probe_exit'] = _probe.returncode\n",
+            "            if _probe.returncode == 0:\n",
+            "                _cache_restored = True\n",
+            "                _cache_info = {'dataset': '__DATASET__', 'mode': 'restored', 'mount': str(_cache_mount), 'seconds': round(time.perf_counter() - _cache_started, 3)}\n",
+            "            else:\n",
+            "                _cache_info = {'dataset': '__DATASET__', 'mode': 'probe_failed'}\n",
+            "                shutil.rmtree(source_dir, ignore_errors=True)\n",
+            "    except Exception as _cache_exc:\n",
+            "        _cache_info = {'dataset': '__DATASET__', 'mode': 'error', 'error': repr(_cache_exc)}\n",
+            "        shutil.rmtree(source_dir, ignore_errors=True)\n",
+            "    if not _cache_restored:\n",
+        ]
+        footer_lines = [
+            "    runtime_report['isaac_cache'] = _cache_info\n",
+            "    stage_end('isaac_setup')\n",
+        ]
+        header = "".join(header_lines) \
+            .replace("__DATASET__", args.isaac_cache_dataset) \
+            .replace("__MOUNT__", f"/kaggle/input/{dataset_name}")
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if start_marker not in source or end_marker not in source:
+                continue
+            start = source.index(start_marker)
+            end = source.index(end_marker) + len(end_marker)
+            original = source[start:end]
+            # O fallback é o trecho original SEM a linha do
+            # source_dir (já atribuído no cabeçalho), reindentado
+            # para dentro do `if not _cache_restored:`.
+            fallback = "".join(
+                "    " + line
+                for line in original.splitlines(keepends=True)[1:]
+            )
+            source = (source[:start] + header + fallback
+                      + "".join(footer_lines) + source[end:])
+            cell["source"] = source.splitlines(keepends=True)
+            break
+        else:
+            raise RuntimeError(
+                "âncoras da instalação do Isaac Lab não encontradas "
+                "na célula principal — builder dessincronizado do "
+                "notebook (issue #12)."
+            )
     notebook_path = KAGGLE_DIR / NOTEBOOK_NAME
     notebook_path.write_text(json.dumps(notebook, indent=1) + "\n")
     metadata = {
@@ -690,6 +795,11 @@ def main() -> None:
         "machine_shape": args.accelerator,
         "enable_internet": True,
     }
+    if args.isaac_cache_dataset:
+        # O Kaggle monta o dataset em /kaggle/input/<dataset> e o
+        # script de push já traduz dataset_sources ->
+        # datasetDataSources no corpo do POST /kernels/push.
+        metadata["dataset_sources"] = [args.isaac_cache_dataset]
     (KAGGLE_DIR / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     print(notebook_path)
 
