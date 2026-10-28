@@ -1208,3 +1208,120 @@ main, incluindo o núcleo de orquestração exercitado com
 estágios falsos — SystemExit, exceção e argv conferidos). O
 veredito aguarda a corrida do spike no Kaggle: nenhuma simulação
 roda na VM, e a reentrada só se prova com o Isaac de verdade.
+
+### Protocolo do Experimento 3 — PPO ancorado em BC (issue #23, receita DAPG/RFT — pré-registrado em 28/10/2026)
+
+> Protocolo `fanuc-ppo-anchored-bc` (kernel
+> `pascalcoimbra/fanuc-ppo-anchored-bc`).
+
+**Pergunta:** protegido o início (Exp. 1), o que impede o PPO de
+APAGAR o comportamento clonado ao longo das 1500 iterações é uma
+âncora de imitação que continua ativa durante o RL? É a receita
+que a auditoria de integrações ranqueou (DAPG/RFT reimplementada:
+não há biblioteca plugável para Isaac Lab + RSL-RL) e que a
+árvore de decisão do estudo da issue #8 aponta quando o Exp. 1
+mostra grasp que nasce e colapsa.
+
+**Pré-condição e ramos (lê o veredito do Experimento 1, issue #8):**
+o lançamento SÓ acontece com o veredito do Exp. 1 registrado.
+(i) Exp. 1 PARCIAL (iii) ou MATA com grasp alto no fim do warmup
+que **colapsa** depois → esquecimento confirmado: este é o passo
+seguinte direto, com a receita cheia abaixo. (ii) Exp. 1 PROVA ou
+PARCIAL (i)/(ii) → a âncora entra como consolidação, com
+`--anchor-weight 0.01` (metade), todo o resto idêntico. (iii)
+Exp. 1 MATA-B (`grasp_rate_BC < 0,05` no Estágio A) → esta issue
+PERDE prioridade para estado ampliado/DAgger de coleta: ancorar
+um BC que não expressa o grasp não testa nada.
+
+**Receita (fixada; implementação atrás de flags, default
+desligado):** base = Estágio B protegido do Exp. 1 (entropia 0,
+crítico aquecido com ator congelado por 50 iterações, std inicial
+0,1) + três componentes da issue, no `scripts/train_ppo_bc.py`
+sobre o núcleo puro `fanuc_cell.anchored_ppo`:
+1. **Âncora KL** para um ator BC **congelado** (os mesmos pesos do
+   warm-start, em módulo torch separado): KL fechada entre as
+   Gaussianas diagonais do estudante e do professor (σ do
+   professor = 0,1, o `init_noise_std` da tarefa — o BC entrega só
+   a média), amostrada nas demos DESTA corrida, **4 passos de
+   gradiente por iteração × batch 1024**, peso **β0 = 0,02** com
+   **decaimento linear até 0** ao longo da fase conjunta (1450
+   iterações). Modo `mse` (MSE da média para as ações das demos)
+   fica implementado como variante de diagnóstico, fora do
+   protocolo.
+2. **Gating do passo do ator**: `β(t) = tanh(t/50)` aplicado no
+   espaço de parâmetros — após cada `update()` do PPO, os
+   parâmetros do ator são interpolados de volta ao valor
+   pré-update por β(t) (equivale a escalar o passo do ator;
+   crítico, otimizador e schedule de LR intocados). Em t=0 o ator
+   não se move por PPO; a âncora, que NÃO é gated, é quem o segura.
+3. **Std congelado**: o parâmetro de desvio da distribuição tem
+   `requires_grad` desligado a corrida inteira (congelado ANTES
+   do warmup, para não entrar na lista de descongelamento dele).
+Cronogramas indexados na **fase conjunta** (o warmup congelado
+não consome decaimento nem gating). Marcadores duráveis:
+`runtime_report['bc_anchor']` com a configuração, e a seção
+`anchored` do `bc-warmstart.json` + `BC_ANCHOR_STEP` a cada 50
+iterações no log.
+
+**Corrida:** kernel novo, slug `fanuc-ppo-anchored-bc`; build
+`--bc-warmstart --bc-exp1 --bc-anchor --train-num-envs 256
+--train-max-iterations 1500` (o builder exige `--bc-exp1` com
+`--bc-anchor`: sem Estágio A não há as leituras dos portões).
+Composição registrada: com `--obs-history 8` SOMENTE se a árvore
+do OBS-2 mandar (ramo PARCIAL-iii dele: DAPG sobre a obs com
+história) — nesse caso a única diferença adicional é a história,
+e as demos/âncora nascem com 192 dims por construção. Todo o
+resto é herdado do Exp. 1: coleta do professor com portão ≥ 0,80,
+BC de 300 épocas, budget 256×1500, **benchmark multi-seed B3**
+(101, 202, 303; média ± desvio/IC95).
+
+**Métricas oficiais e definição de colapso:** `grasp_rate_BC` do
+Estágio A (ator puro); `grasp@fim-do-warmup` = média da métrica
+`Metrics/grasp_rate` dos logs de treino nas iterações 40–50 (na
+ausência dela nos logs, eval-only B2 do checkpoint do fim do
+warmup — a fonte usada entra no relatório); `grasp@iteração-0`
+da fase conjunta; grasp final e máximo do treino; benchmark
+`success_rate` (primária) e `grasp_rate`. **Colapso** :=
+`grasp@fim-do-warmup ≥ 0,20` **e** grasp final
+`< 0,5 × grasp@fim-do-warmup`.
+
+**Portões (contra o veredito do Exp. 1 e o 0,0 histórico):**
+- **PROVA:** benchmark `success_rate ≥ max(0,30; sucesso do
+  Exp. 1 + 0,10)` **e sem colapso** ⇒ a receita ancorada vira o
+  caminho padrão do warm-start BC; próximo passo = escala/
+  robustez pela fila do fundador.
+- **PARCIAL:** sucesso em (0, PROVA), ou sucesso 0 com
+  **ausência de colapso** e grasp final ≥ 0,20 (a âncora segurou
+  o comportamento mas gerenciar o grasp virou o gargalo →
+  próximo = OBS-2/gerenciamento, não mais âncora).
+- **MATA:** colapso se repete (definição acima) ou grasp final
+  ≤ 0,02 ⇒ âncora neste desenho/escala não segura o warm-start;
+  escalar para o desenho DAgger abaixo ou para os ramos de
+  estado do estudo — decisão do fundador com estes dados.
+
+**DAgger — desenhado, NÃO implementado nesta rodada (e por quê):**
+a re-rotulagem exige estados visitados PELO ESTUDANTE, e o
+estudante vive dentro do `learn()` monolítico do runner, que é
+dono do env — não há como intercalar rollouts de rotulagem sem
+fatiar o treino. O desenho que fica: (a) fatiar a fase conjunta
+em rodadas de 250 iterações por chamadas sucessivas de `learn()`
+— a retomada é comprovada pelo próprio Estágio B (duas chamadas
++ correção do off-by-one); (b) entre rodadas, uma passada de
+rotulagem com env lateral de 1 env (o padrão do
+`eval_bc_actor.py`): o estudante dirige, o professor scriptado
+(`teacher_gripper_action` + IK do `collect_demos.py`) rotula os
+estados visitados, e os pares entram no buffer da âncora; (c) o
+gancho de código JÁ existe: `DemoBuffer.append(DemoSet)` no
+núcleo puro — as rodadas acrescentam DemoSets no mesmo formato,
+sem tocar a âncora. Custo estimado na auditoria: é o item que
+leva a receita de 3–5 dias; entra como PR próprio quando o
+veredito desta corrida (ou o ramo MATA-B do Exp. 1) o pedir.
+
+**Status:** implementação preparatória pronta em 28/10/2026 —
+núcleo puro + cola no treino + flags do builder, tudo default
+desligado (notebook sem as flags: células idênticas às da main,
+só o zip do bundle ganha os arquivos novos; suíte 146/146 com 18
+testes novos). **Lançamento gated pelo veredito do Experimento
+1**, que segue em corrida (kernel `fanuc-bc-warmstart` v9): sem
+o veredito registrado, nenhum kernel desta receita é lançado.
+
