@@ -44,13 +44,24 @@ class CellPhysicsCfg(PresetCfg):
     MJWarp é o solver do spike (contato macio da família MuJoCo);
     ``nconmax`` explícito porque o MJWarp descarta contatos em
     silêncio ao estourar o buffer pré-alocado.
+    Retune de contato — tentativa 1 de ≤ 3 do protocolo (spike v4):
+    o baseline da v3 passou o portão 0 (probe finito nos 64 envs)
+    mas falhou o portão 1 — contato unilateral (picos 63,6 N ×
+    250,8 N), `closed_bilateral_contact_steps = 0` e a peça ejetada
+    da esteira. Formulação de atrito reforçada, como manda o guia
+    oficial de tuning do MJWarp para contato válido que escorrega:
+    cone ``elliptic`` (o ``pyramidal`` aproxima o cone e perde
+    atrito fora dos eixos) e ``impratio=10`` (impedância friccional
+    10× a normal; default do MuJoCo = 1). Capacidades e integrador
+    inalterados; o preset OvPhysX não é tocado.
     """
 
     ovphysx: OvPhysxCfg = OvPhysxCfg()
     newton_mjwarp: NewtonCfg = NewtonCfg(
         solver_cfg=MJWarpSolverCfg(
             integrator="implicitfast",
-            cone="pyramidal",
+            cone="elliptic",
+            impratio=10.0,
             nconmax=512,
             njmax=1024,
         )
@@ -494,6 +505,7 @@ class RewardsCfg:
     lost = RewardTerm(func=mdp.object_lost, weight=-10.0)
     action_rate = RewardTerm(func=common_mdp.action_rate_l2, weight=-0.005)
     success_rate = RewardTerm(func=mdp.ObjectPlacementSuccessRate, weight=0.0)
+    grasp_rate = RewardTerm(func=mdp.ObjectGraspRate, weight=0.0)
 
 
 @configclass

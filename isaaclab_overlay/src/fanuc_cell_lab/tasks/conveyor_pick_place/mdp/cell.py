@@ -251,6 +251,44 @@ class ObjectPlacementSuccessRate(ManagerTermBase):
         self._episode_success[env_ids] = False
 
 
+class ObjectGraspRate(ManagerTermBase):
+    """Report completed-episode grasp rate to Isaac Lab metrics (B3).
+
+    Espelho de ``ObjectPlacementSuccessRate`` para o degrau
+    intermediário do veredito: fração dos episódios encerrados em
+    que a peça foi segurada ao menos uma vez
+    (``env._part_was_grasped``, mantido por ``object_grasped``).
+    Peso 0.0 no RewardsCfg — métrica pura, sem sinal de treino —
+    para o benchmark oficial reportar ``Metrics/grasp_rate`` por
+    seed ao lado do success_rate (protocolo multi-seed da issue
+    #10: os critérios PROVA/PARCIAL/MATA leem grasp além de
+    success).
+    """
+
+    def __init__(self, cfg, env):
+        super().__init__(cfg, env)
+        self._env = env
+        self._episode_grasped = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+
+    def __call__(self, env) -> torch.Tensor:
+        was_grasped = getattr(env, "_part_was_grasped", None)
+        if was_grasped is not None:
+            self._episode_grasped |= was_grasped
+        return torch.zeros(env.num_envs, dtype=torch.float32, device=env.device)
+
+    def reset(self, env_ids: torch.Tensor | None = None) -> None:
+        if env_ids is None:
+            env_ids = torch.arange(self._env.num_envs, device=self._env.device)
+        else:
+            env_ids = _resolve_env_ids(self._env, env_ids)
+        if env_ids.numel() == 0:
+            return
+        self._env.extras.setdefault("log", {})["Metrics/grasp_rate"] = (
+            self._episode_grasped[env_ids].to(dtype=torch.float32).mean()
+        )
+        self._episode_grasped[env_ids] = False
+
+
 def object_released_at_goal(
     env,
     part_cfg: SceneEntityCfg = SceneEntityCfg("part"),
