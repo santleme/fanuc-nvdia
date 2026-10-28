@@ -640,6 +640,67 @@ retune presente, default OvPhysX intacto). Relançamento do spike
 v4 com os portões inalterados: se o baseline seguir sem contato
 bilateral fechado, restam 2 tentativas antes do FAIL de engine.
 
+### Veredito do spike v4 — portão 1 reprovado de novo; retune tentativa 2 (spike v5) (28/10/2026)
+
+Kernel `pascalcoimbra/fanuc-newton-spike` v4 (retune tentativa 1:
+cone `elliptic` + `impratio=10`), status `error` — de novo no
+portão 1, com o baseline rodando o episódio inteiro e o notebook
+abortando em `RuntimeError: Scripted physical baseline did not
+complete`. O portão 0 passou (`{"finite": true, "steps": 24,
+"num_envs": 64}`); PPO nunca rodou. Comparação direta com a v3 —
+a tentativa 1 **não teve efeito mensurável**:
+
+- `"success": false`, `"scripted_grasp_sensor_passed": false`;
+- `bilateral_contact_steps = 1` (o mesmo passo único da v3),
+  **`closed_bilateral_contact_steps = 0`**;
+- picos unilaterais de **63,64 N (esquerdo) × 250,84 N
+  (direito)** — os 63,6 × 250,8 N da v3 na precisão impressa;
+- peça ejetada para **(1,633; −0,005; 0,040)** — a mesma posição
+  final da v3. Pelos snapshots de fase: em `grasp` (3,0 s) a peça
+  está em x=1,040 sobre a esteira; em `hold` (3,5 s) está em
+  x=1,546, z=0,057 — lançada ~0,5 m no fechamento da garra.
+
+Leitura: a formulação de atrito (cone/impratio) regula um atrito
+que nunca chega a atuar — a pinça **não se forma**. O contato
+dedo×peça é um evento único e unilateral: o primeiro dedo que
+encosta empurra a peça de 0,35 kg para fora do alcance do
+segundo, e um contato de ponto único não oferece resistência à
+rotação/translação enquanto isso. Classificação pelo protocolo:
+caso (a) de novo — restam **2 tentativas** de retune antes do
+FAIL de engine.
+
+**Correção / retune — tentativa 2 (spike v5)**: atacar a
+formação do contato, mantendo cone/impratio da tentativa 1.
+Campos conferidos no fonte pinado do Isaac Lab (tag `v3.0.0`,
+`mjwarp_manager_cfg.py`/`newton_manager_cfg.py`):
+
+- `enable_multiccd=True` no `MJWarpSolverCfg`: pares convexos
+  suportados passam a gerar um **manifold** de contatos (vários
+  pontos na superfície) em vez de um ponto único; a doc do campo
+  motiva exatamente "melhorar a estabilidade de contatos planos
+  em stacking e grasping", e o exemplo oficial de mão do Isaac
+  Lab usa a flag para contatos nos pads dos dedos;
+- `nconmax=1024`, `njmax=2048`: a folga de capacidade que a
+  mesma doc prescreve ao ligar o multiccd (mais pontos de
+  contato e linhas de restrição por ambiente);
+- `default_shape_cfg=NewtonShapeCfg(mu=1.5)` no `NewtonCfg`:
+  atrito default das shapes **sem material explícito** — a cena
+  da tarefa não declara nenhum — elevado do default 1.0 da
+  v3.0.0 para 1.5, para a mancha de contato segurar a peça na
+  direção tangencial (o esguicho é ao longo da esteira, +x) em
+  vez de deixá-la escapar durante o fechamento.
+
+Teste de regressão estrutural novo (preset com a tentativa 2,
+tentativa 1 preservada, OvPhysX intacto). Relançamento do spike
+v5 com os portões inalterados: sucesso do retune se mede por
+`closed_bilateral_contact_steps > 0`, picos mais simétricos e a
+peça terminando o episódio sobre a esteira. Se o portão 1
+falhar de novo, resta **1 tentativa** — direção registrada:
+rigidez/amortecimento de contato (`ke`/`kd` do
+`NewtonShapeCfg`, default macio de 2,5×10³ N/m da v3.0.0) e
+convergência do solver (`iterations`/`tolerance`), que a
+tentativa 2 deliberadamente não tocou.
+
 ### Veredito da v70 — MATA (27/10/2026)
 
 Kernel `pascalcoimbra/fanuc-conveyor-pick-place` v70 COMPLETO
