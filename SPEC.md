@@ -903,7 +903,9 @@ antídoto canônico é DAPG: imitação continuada durante o RL).
 **Experimento 1 (protocolo pré-registrado; um kernel, dois
 estágios)**: (A) rollout determinístico do **ator BC puro** em 200
 episódios (benchmark do ator sem PPO); (B) **PPO warm-start
-protegido** no budget da v7 (256×1500): std inicial 0,15, entropia 0,
+protegido** no budget da v7 (256×1500): entropia 0 (o std inicial
+ja e 0,1 no cfg do projeto — abaixo do teto de 0,15 do estudo —
+e fica como esta),
 normalização de obs idêntica à do BC, crítico aquecido com o ator
 congelado por 50 iterações. Benchmark multi-seed (B3).
 Portões: **PROVA** = benchmark ≥ 0,30. **PARCIAL** = sucesso em
