@@ -467,6 +467,7 @@ class RewardsCfg:
     lost = RewardTerm(func=mdp.object_lost, weight=-10.0)
     action_rate = RewardTerm(func=common_mdp.action_rate_l2, weight=-0.005)
     success_rate = RewardTerm(func=mdp.ObjectPlacementSuccessRate, weight=0.0)
+    grasp_rate = RewardTerm(func=mdp.ObjectGraspRate, weight=0.0)
 
 
 @configclass
