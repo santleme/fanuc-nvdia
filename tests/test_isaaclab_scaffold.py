@@ -214,7 +214,7 @@ def test_newton_preset_is_available_but_inert() -> None:
     assert "from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg" in env_cfg
     assert "newton_mjwarp: NewtonCfg = NewtonCfg(" in env_cfg
     assert 'integrator="implicitfast"' in env_cfg
-    assert "nconmax=512" in env_cfg
+    assert "nconmax=1024" in env_cfg
     assert "default: OvPhysxCfg = ovphysx" in env_cfg
 
 
@@ -233,7 +233,32 @@ def test_newton_preset_contact_retune_attempt_1() -> None:
     assert 'cone="elliptic"' in env_cfg
     assert "impratio=10.0" in env_cfg
     assert 'cone="pyramidal"' not in env_cfg
-    assert "nconmax=512" in env_cfg and "njmax=1024" in env_cfg
+    assert "default: OvPhysxCfg = ovphysx" in env_cfg
+
+
+def test_newton_preset_contact_retune_attempt_2() -> None:
+    """Spike v4 (issue #2): a tentativa 1 (cone `elliptic` +
+    `impratio=10`) não teve efeito mensurável — o baseline repetiu
+    os números da v3 (picos 63,64 N × 250,84 N,
+    `closed_bilateral_contact_steps = 0`, peça ejetada para
+    (1,633; −0,005; 0,040)). A pinça nunca se forma: o contato
+    dedo×peça é um evento único e unilateral que lança a peça.
+    A tentativa 2 ataca a formação do contato, com os campos
+    conferidos no fonte pinado do Isaac Lab (tag v3.0.0):
+    `enable_multiccd=True` (manifold em vez de ponto único),
+    `nconmax=1024`/`njmax=2048` (folga que a doc do multiccd
+    prescreve) e `default_shape_cfg=NewtonShapeCfg(mu=1.5)`
+    (atrito default das shapes sem material explícito acima do
+    default 1.0 da v3.0.0). Regressão: reverter qualquer um dos
+    três quebra este teste antes do kernel; o preset OvPhysX e o
+    default da célula seguem intocados."""
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+
+    assert "NewtonShapeCfg" in env_cfg
+    assert "enable_multiccd=True" in env_cfg
+    assert "nconmax=1024" in env_cfg and "njmax=2048" in env_cfg
+    assert "nconmax=512" not in env_cfg and "njmax=1024" not in env_cfg
+    assert "default_shape_cfg=NewtonShapeCfg(mu=1.5)" in env_cfg
     assert "default: OvPhysxCfg = ovphysx" in env_cfg
 
 

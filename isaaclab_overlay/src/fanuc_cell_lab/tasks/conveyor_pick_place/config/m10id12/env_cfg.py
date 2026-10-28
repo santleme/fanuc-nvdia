@@ -22,7 +22,7 @@ from isaaclab.sensors import ContactSensorCfg
 from isaaclab.sim import SimulationCfg
 from isaaclab.utils import configclass
 from isaaclab.visualizers import VisualizerCfg
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_ov.physics import OvPhysxCfg
 from isaaclab_tasks.utils import PresetCfg
 
@@ -54,6 +54,29 @@ class CellPhysicsCfg(PresetCfg):
     atrito fora dos eixos) e ``impratio=10`` (impedância friccional
     10× a normal; default do MuJoCo = 1). Capacidades e integrador
     inalterados; o preset OvPhysX não é tocado.
+    Retune de contato — tentativa 2 de ≤ 3 do protocolo (spike v5):
+    a v4 repetiu a v3 número por número (picos 63,64 N × 250,84 N,
+    `closed_bilateral_contact_steps = 0`, peça ejetada para
+    (1,633; −0,005; 0,040)) — a formulação de atrito da tentativa 1
+    não teve efeito mensurável, porque a pinça nunca se forma: o
+    contato dedo×peça é um evento único e unilateral
+    (`bilateral_contact_steps = 1` em 445 passos) que lança a peça
+    de 0,35 kg no fechamento. Três mudanças, todas de contato e
+    conferidas no fonte pinado do Isaac Lab (tag v3.0.0):
+    ``enable_multiccd=True`` — pares convexos suportados geram um
+    manifold de contatos em vez de um ponto único (a doc do campo
+    motiva exatamente estabilidade em stacking e grasping; um
+    ponto único não resiste à rotação/translação da peça enquanto
+    o segundo dedo fecha); ``nconmax=1024``/``njmax=2048`` — a
+    folga de capacidade que a própria doc do multiccd prescreve
+    (mais pontos de contato e linhas de restrição por ambiente);
+    ``default_shape_cfg=NewtonShapeCfg(mu=1.5)`` — atrito default
+    das shapes sem material explícito (a cena não declara nenhum)
+    acima do default 1.0 da v3.0.0, para a mancha de contato
+    segurar a peça na direção tangencial em vez de deixá-la
+    esguichar ao longo da esteira. Cone/impratio da tentativa 1
+    mantidos; rigidez de contato (ke/kd) e convergência ficam
+    como direção registrada da tentativa 3, se necessária.
     """
 
     ovphysx: OvPhysxCfg = OvPhysxCfg()
@@ -62,9 +85,11 @@ class CellPhysicsCfg(PresetCfg):
             integrator="implicitfast",
             cone="elliptic",
             impratio=10.0,
-            nconmax=512,
-            njmax=1024,
-        )
+            enable_multiccd=True,
+            nconmax=1024,
+            njmax=2048,
+        ),
+        default_shape_cfg=NewtonShapeCfg(mu=1.5),
     )
     default: OvPhysxCfg = ovphysx
 
