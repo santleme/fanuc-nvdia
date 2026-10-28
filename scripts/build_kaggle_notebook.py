@@ -30,6 +30,7 @@ def bundled_project() -> str:
         "src/fanuc_cell/demos.py",
         "src/fanuc_cell/bc.py",
         "src/fanuc_cell/rerun_log.py",
+        "src/fanuc_cell/gripper_threshold.py",
         "scripts/render_demo.py",
         "scripts/run_scripted_demo.py",
         "scripts/diagnose_training_nan.py",
@@ -41,6 +42,7 @@ def bundled_project() -> str:
         "tests/test_task.py",
         "tests/test_static_clearance.py",
         "tests/test_rerun_log.py",
+        "tests/test_gripper_threshold.py",
     ]
     included.extend(
         path.relative_to(ROOT).as_posix()

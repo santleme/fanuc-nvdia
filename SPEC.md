@@ -925,3 +925,64 @@ chamadas (50 congeladas exatas, 1500 updates, model_1499). A v8 do
 kernel chegou a ser lançada sem a correção e foi substituída pela
 v9 minutos depois, ainda no estágio de coleta — nenhum resultado da
 v8 é válido nem será lido como experimento.
+
+### Protocolo do probe do limiar da garra (B6, issue #13 — pré-registrado em 27/10/2026)
+
+> Protocolo `fanuc-gripper-threshold-b6`.
+
+A ambiguidade, medida no código: `object_held` e `object_grasped`
+declaram a garra **fechada** com as duas juntas `>=
+closed_joint_position` (default **0,004 m**, parâmetro) e o baseline
+scriptado usa o mesmo literal; `object_at_goal` declara a garra
+**aberta** com as duas juntas `< 0,005 m` — literal solto, sem
+parâmetro. Na banda [0,004; 0,005) a mesma pose é fechada para o
+grasp e aberta para o sucesso, simultaneamente. Nenhum dos dois
+valores foi medido: um veio do código, outro dos testes antigos.
+Este protocolo mede onde a física põe o pinch e fixa UM valor.
+
+**Medição** (kernel `pascalcoimbra/fanuc-probe-gripper-threshold`,
+builder `scripts/build_probe_notebook.py`, probe
+`scripts/probe_gripper_threshold.py`; nada roda na VM): cenário
+`pinch` = episódio do professor com a construção do baseline, seeds
+**23, 24, 25**; cenário `empty` = braço em home, fechamento até o
+platô (3 s) e abertura (2 s). Cada passo grava junta esquerda/direita
+da garra, força normal dos dois dedos, fase e distância peça–TCP. As
+amostras cruas são salvas (`gripper-threshold-samples.json`) — a
+análise (`fanuc_cell.gripper_threshold`, pura) pode ser refeita sem
+nova simulação.
+
+**Quantidades medidas.** Verdade física do pinch = contato bilateral
+(forças > 0,01 N, o limiar do próprio MDP). (i) `pinch_p05`:
+percentil 5 da junta MÍNIMA nos passos de contato bilateral
+sustentado (>= 5 passos consecutivos) das fases grasp/hold/lift/
+transfer/place — teto do limiar de fechamento. (ii)
+`contact_loss_p05`: percentil 5 da junta MÁXIMA no passo de perda de
+contato na abertura (último passo com contato seguido de >= 10 sem
+contato) — teto do limiar de abertura. (iii) platô do fechamento
+vazio (mediana da junta mínima nos 20% finais do `empty_close`).
+(iv) varredura FP/FN de cada candidato da grade 0,0020–0,0080 m
+(passo 0,00025) contra o contato medido. (v) ocupação da banda
+atual: fração de passos com min >= 0,004 e max < 0,005, no total,
+com contato e sem contato.
+
+**Regra de leitura (fixada antes da corrida).** Teto admissível =
+min(`pinch_p05`, `contact_loss_p05`); **T\*** = maior ponto da grade
+sob o teto. **PROVA**: T* >= 0,0045 — adotar T* como valor único
+(fechada := min >= T*; aberta := max < T*, o MESMO T* nos dois
+predicados; a banda some por construção). **PARCIAL**: 0,004 <= T* <
+0,0045 — manter 0,004 como valor único e alinhar só o literal de
+abertura a ele. **MATA**: T* < 0,004 ou grade vazia — nem o valor do
+código se sustenta: pinches reais vivem abaixo dele ou o contato
+persiste abaixo dele na abertura; escalar a revisão do desenho da
+detecção de grasp (a junta sozinha não separa os estados).
+**SEM_SINAL**: sem pinch sustentado ou sem perda de contato medida
+— a medição não aconteceu; relançar o probe, nada se decide.
+
+**Alinhamento (commit seguinte ao veredito, PR próprio):** aplicar
+o valor decidido em `object_held`/`object_grasped`
+(`closed_joint_position`), no literal de abertura de
+`object_at_goal` (que passa a usar o mesmo valor), no literal do
+baseline (`run_scripted_demo.py`) e na asserção do teste de scaffold
+— código e testes alinhados ao valor medido, como pede a aceitação
+da issue #13. Até lá, código e testes seguem como estão: este PR
+entrega o instrumento e a regra, não o valor.
