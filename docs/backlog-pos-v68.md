@@ -15,7 +15,7 @@ após grasp × timeout. Sem esse mapa, redesign de reward é chute.
 Aceitação: relatório com a distribuição dos modos em ≥64 episódios e
 recomendação de qual termo/currículo atacar.
 
-## B2 — Modo eval-only no notebook (sem retreino)
+## B2 — Modo eval-only no notebook (sem retreino) — IMPLEMENTADA em 27/10/2026 (issue #11; builder --eval-only/--eval-checkpoint + scripts/package_checkpoint_dataset.py, SPEC atualizada; aceitação de tempo/veredito depende da 1ª corrida eval no Kaggle)
 Hoje toda avaliação repete install+treino (~15 min). Empacotar o
 checkpoint como dataset Kaggle e adicionar modo que pula direto para
 playback+benchmark a partir dele. Aceitação: avaliar um checkpoint
