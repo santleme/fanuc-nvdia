@@ -143,6 +143,24 @@ def main() -> None:
              "env do play (cena cinematic do env_cfg). Treino e "
              "benchmark não mudam. Default desligado.",
     )
+    parser.add_argument(
+        "--eval-only", action="store_true",
+        help="Modo eval-only (issue #11, B2): o notebook NÃO treina "
+             "— roda probe+baseline de sanidade e pula direto para "
+             "playback+benchmark multi-seed de um checkpoint já "
+             "treinado, empacotado como dataset Kaggle (montado em "
+             "/kaggle/input). Exige --eval-checkpoint explícito. "
+             "Use com um slug próprio (ex.: --kernel-slug "
+             "fanuc-eval-only). Default desligado.",
+    )
+    parser.add_argument(
+        "--eval-checkpoint", default=None,
+        help="Caminho do checkpoint RELATIVO a /kaggle/input, no "
+             "formato <dataset>/<arquivo>.pt (ex.: "
+             "fanuc-checkpoint-bc-v7/model_1499.pt). O primeiro "
+             "componente é o slug do dataset anexado ao kernel. "
+             "'latest' é proibido (lição da BC v6).",
+    )
     args = parser.parse_args()
     if args.bc_warmstart and args.physics != "ovphysx":
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
@@ -161,6 +179,28 @@ def main() -> None:
         parser.error("--bc-warmstart exige a escala explicita do "
                      "protocolo: --train-num-envs 256 "
                      "--train-max-iterations 1500")
+    if args.eval_only and not args.eval_checkpoint:
+        parser.error("--eval-only exige --eval-checkpoint explicito "
+                     "(<dataset>/<arquivo>.pt relativo a /kaggle/input)")
+    if args.eval_checkpoint and not args.eval_only:
+        parser.error("--eval-checkpoint so faz sentido com --eval-only")
+    if args.eval_only and args.bc_warmstart:
+        parser.error("--eval-only é incompatível com --bc-warmstart: "
+                     "no modo eval nada treina")
+    if args.eval_checkpoint:
+        parts = Path(args.eval_checkpoint).parts
+        if args.eval_checkpoint.startswith("/") or len(parts) < 2:
+            parser.error("--eval-checkpoint deve ser relativo a "
+                         "/kaggle/input, no formato "
+                         "<dataset>/<arquivo>.pt")
+        if parts[-1] == "latest" or "latest" in parts:
+            # Lição da BC v6: 'latest' matou o playback depois do
+            # treino completo — checkpoint é sempre explícito.
+            parser.error("--eval-checkpoint proíbe 'latest': informe o "
+                         "arquivo exato do checkpoint")
+        if not args.eval_checkpoint.endswith(".pt"):
+            parser.error("--eval-checkpoint deve apontar o arquivo "
+                         ".pt do checkpoint RSL-RL")
     KAGGLE_DIR.mkdir(parents=True, exist_ok=True)
 
     notebook = {
@@ -789,6 +829,51 @@ def main() -> None:
                     "'--checkpoint', 'latest',",
                     "'--checkpoint', str(checkpoints[-1]),")
             cell["source"] = source.splitlines(keepends=True)
+    # Modo eval-only (issue #11, B2), só com --eval-only: na célula
+    # principal, o bloco de treino (comando + portões + glob de
+    # checkpoints) é substituído pela resolução do checkpoint
+    # EXPLÍCITO do dataset anexado, e playback/benchmark passam a
+    # apontar para ele — nada de '--checkpoint latest' (lição da
+    # BC v6) nem de glob por mtime. Probe de NaN e baseline
+    # scriptado (sanidade) ficam intactos ANTES deste ponto; treino,
+    # coleta BC e pré-treino não existem neste modo. As âncoras não
+    # dependem de extras/física (o passe de parametrização roda
+    # antes e pode ter removido '--extra', 'ovphysx'). Sem a flag,
+    # nada aqui roda e o notebook é o de sempre.
+    if args.eval_only:
+        eval_block = (
+            "    # Eval-only (issue #11, B2): sem treino — o checkpoint\n"
+            "    # vem EXPLICITO do dataset Kaggle anexado (montado em\n"
+            "    # /kaggle/input); o caminho é o da flag --eval-checkpoint\n"
+            "    # do builder, nunca 'latest' nem glob por mtime.\n"
+            "    runtime_report['eval_only'] = True\n"
+            f"    _eval_ckpt_path = Path('/kaggle/input') / {args.eval_checkpoint!r}\n"
+            "    if not _eval_ckpt_path.is_file():\n"
+            "        save_report()\n"
+            "        raise RuntimeError('Eval-only: checkpoint explicito nao encontrado no dataset anexado: ' + str(_eval_ckpt_path))\n"
+            "    eval_checkpoint = str(_eval_ckpt_path)\n"
+            "    runtime_report['eval_checkpoint'] = eval_checkpoint\n"
+            "    runtime_report['eval_checkpoint_bytes'] = _eval_ckpt_path.stat().st_size\n"
+            "    runtime_report['ppo_training_exit'] = None\n"
+            "    runtime_report['ppo_training_skip'] = 'eval-only (issue #11): playback+benchmark direto do checkpoint do dataset, sem retreino.'\n"
+        )
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if "training = run(" not in source:
+                continue
+            start = source.index("    training = run(")
+            end_marker = ("raise RuntimeError('PPO exited without "
+                          "producing an RSL-RL checkpoint.')\n")
+            end = source.index(end_marker) + len(end_marker)
+            source = source[:start] + eval_block + source[end:]
+            n_latest = source.count("'--checkpoint', 'latest',")
+            if n_latest != 2:
+                raise AssertionError(
+                    "eval-only esperava 2 usos de '--checkpoint latest' "
+                    f"(playback+benchmark), achou {n_latest}")
+            source = source.replace("'--checkpoint', 'latest',",
+                                    "'--checkpoint', eval_checkpoint,")
+            cell["source"] = source.splitlines(keepends=True)
     # Vídeo industrial fatia 1 (issue #9), só com --cinematic-video:
     # mexe EXCLUSIVAMENTE no comando de playback da célula principal —
     # viz newton_rtx + extra ovrtx + env FANUC_CELL_CINEMATIC=1 para o
@@ -837,6 +922,13 @@ def main() -> None:
         "machine_shape": args.accelerator,
         "enable_internet": True,
     }
+    if args.eval_only:
+        # O dataset do checkpoint entra como fonte do kernel; o push
+        # (scripts/kaggle_push_kernel.py) repassa dataset_sources
+        # para datasetDataSources da API. O dono é reescrito no push
+        # quando --usuario é passado, como já acontece com o id.
+        metadata["dataset_sources"] = [
+            f"{args.kaggle_user}/{Path(args.eval_checkpoint).parts[0]}"]
     (KAGGLE_DIR / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     print(notebook_path)
 

@@ -1049,6 +1049,37 @@ baseline (`run_scripted_demo.py`) e na asserção do teste de scaffold
 — código e testes alinhados ao valor medido, como pede a aceitação
 da issue #13. Até lá, código e testes seguem como estão: este PR
 entrega o instrumento e a regra, não o valor.
+## Modo eval-only (issue #11, B2) — implementado em 27/10/2026
+
+Avaliar checkpoint existente sem repetir treino: o checkpoint é
+empacotado como dataset Kaggle (`scripts/package_checkpoint_dataset.py`
+gera a pasta com o .pt de nome preservado, `dataset-metadata.json` e
+`checkpoint-manifest.json` com sha256/bytes/origem; upload pelo
+`create-dataset` do conector custom.kaggle) e o builder ganha o modo
+`--eval-only --eval-checkpoint <dataset>/<arquivo>.pt`:
+
+- O builder anexa o dataset ao kernel (`dataset_sources` no metadata;
+  o push reescreve o dono com `--usuario`, como já faz com o id).
+- Na célula principal, o bloco de treino é substituído pela resolução
+  do checkpoint em `/kaggle/input/<dataset>/<arquivo>.pt`, com portão
+  de existência; playback e benchmark multi-seed (B3) usam
+  `--checkpoint eval_checkpoint` — **nada de `latest`** (lição da
+  BC v6) nem de glob por mtime. Probe de NaN e baseline scriptado
+  (sanidade) são mantidos; o runtime-report registra `eval_only`,
+  o caminho e os bytes do checkpoint.
+- Validações do builder: `--eval-only` exige checkpoint explícito
+  relativo a /kaggle/input, terminando em `.pt`, sem componente
+  `latest`; incompatível com `--bc-warmstart`. Compõe com
+  `--cinematic-video` (o caso da issue #9: vídeo de checkpoint já
+  treinado) e com o passe de física. Sem as flags, o notebook gerado
+  é idêntico ao de sempre (células e conteúdo do zip conferidos
+  contra a main).
+- Protocolo da 1ª corrida: montar com slug próprio (ex.:
+  `fanuc-eval-only`), avaliar o checkpoint final da corrida BC
+  vigente e conferir (a) tempo total de kernel < 8 min até o fim do
+  benchmark e (b) `policy_success_rates` por seed idênticos aos da
+  corrida original. Até essa corrida, a aceitação está implementada
+  mas não verificada em voo.
 
 ### Protocolo do vídeo industrial — newton_rtx + cena cinematic (issue #9, pré-registrado em 27/10/2026)
 
