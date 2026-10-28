@@ -925,3 +925,39 @@ chamadas (50 congeladas exatas, 1500 updates, model_1499). A v8 do
 kernel chegou a ser lançada sem a correção e foi substituída pela
 v9 minutos depois, ainda no estágio de coleta — nenhum resultado da
 v8 é válido nem será lido como experimento.
+
+### Experimento OBS-2 — histórico de observações (issue #8, parte 2 — 27/10/2026)
+
+Estudo completo em `docs/estudo-observabilidade-exp2-2026-10-27.md`.
+Desenho: a **menor** mudança de memória primeiro — frame stacking
+nativo do Isaac Lab (grupo `policy` com `history_length=8`,
+achatado; 24 → 192 dims; janela de 0,16 s a 50 Hz), que ataca o
+aliasing temporal sub-segundo (dinâmica do contato, latch de
+captura) sem tocar MDP, reward, loop de treino ou arquitetura
+(exceto a camada de entrada, desvio forçado registrado). Opções
+maiores (features derivadas de sensores, crítico assimétrico, ator
+recorrente) estão desenhadas no estudo como OBS-3+, não
+implementadas.
+
+**Fiação (implementada, atrás de flag, default intocado):**
+variável `FANUC_CELL_OBS_HISTORY` lida no `env_cfg` (default 1 =
+frame único: nenhum atributo de história é tocado, tarefa byte a
+byte a de sempre) e flag `--obs-history N` no builder, que injeta a
+variável no processo do notebook e no `baseline_env` (coleta, eval,
+treino, playback e benchmark com o MESMO N por construção) e grava
+`obs_history` no runtime-report.
+
+**Protocolo pré-registrado:** a corrida OBS-2 só roda com o
+veredito do Experimento 1 lido e o ramo da árvore do estudo
+apontando para ela (PARCIAL-ii ou MATA-B do Exp. 1; ou decisão do
+fundador no ramo PROVA). Kernel novo (slug `fanuc-obs2-history`):
+build `--bc-warmstart --bc-exp1 --obs-history 8`, 256×1500,
+benchmark multi-seed B3 — **única diferença vs. o Exp. 1 é a
+história**. Portões: **PROVA** = benchmark ≥ 0,30. **PARCIAL** =
+sucesso em (0; 0,30), ou grasp final ≥ 0,20 sem sucesso, ou
+`grasp_rate_BC(H=8) ≥ 0,30` com colapso no PPO (→ DAPG sobre a obs
+com história). **MATA** = sucesso 0, grasp final ≤ 0,02 e
+`grasp_rate_BC(H=8) < 0,05` (janela curta rejeitada como causa
+primária; volta à decisão do fundador entre features/crítico
+assimétrico/recorrência). Demos e checkpoints não são
+intercambiáveis entre valores de H.

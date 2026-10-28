@@ -156,6 +156,35 @@ class CellSceneCfg(InteractiveSceneCfg):
     )
 
 
+def _obs_history_length() -> int:
+    """Histórico de observações da política (Experimento OBS-2, issue #8).
+
+    Default 1 = frame único: o grupo de observação fica INTOCADO
+    (``history_length`` segue ``None`` no cfg do Isaac Lab, sem
+    buffers) e a tarefa é byte a byte a de sempre. Com
+    ``FANUC_CELL_OBS_HISTORY=N`` (N >= 2), o ``PolicyCfg`` empilha os
+    últimos N frames de TODOS os termos pelo mecanismo nativo do
+    ObservationManager (``ObservationGroupCfg.history_length``, com
+    ``flatten_history_dim``) — a observação da política vira 24*N
+    dims. Coleta, BC, treino, playback e benchmark precisam ver o
+    MESMO N (o builder injeta a variável no processo do notebook e no
+    ``baseline_env``); demos e checkpoints NÃO são intercambiáveis
+    entre valores de N.
+    """
+    raw = os.environ.get("FANUC_CELL_OBS_HISTORY", "1")
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ValueError(
+            f"FANUC_CELL_OBS_HISTORY invalido: {raw!r} "
+            "(esperado inteiro >= 1)") from None
+    if value < 1:
+        raise ValueError(
+            f"FANUC_CELL_OBS_HISTORY invalido: {value} "
+            "(esperado inteiro >= 1)")
+    return value
+
+
 def _cinematic_enabled() -> bool:
     """Variante de cena do vídeo industrial (issue #9, fatia 1).
 
@@ -415,6 +444,15 @@ class ObservationsCfg:
 
         def __post_init__(self) -> None:
             self.concatenate_terms = True
+            history = _obs_history_length()
+            if history > 1:
+                # OBS-2 (issue #8): empilha os últimos `history`
+                # frames de todos os termos (buffer circular do
+                # ObservationManager, achatado). Com 1 (default)
+                # nenhum atributo é tocado — sem buffers, sem
+                # mudança de dimensão.
+                self.history_length = history
+                self.flatten_history_dim = True
 
     policy: PolicyCfg = PolicyCfg()
 

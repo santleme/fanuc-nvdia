@@ -114,6 +114,17 @@ def main() -> None:
                              "PROTEGIDO (entropia 0, crítico aquecido "
                              "com o ator congelado por 50 iterações).")
     parser.add_argument(
+        "--obs-history", type=int, default=1,
+        help="Experimento OBS-2 (issue #8): empilha os ultimos N "
+             "frames na observacao da politica "
+             "(FANUC_CELL_OBS_HISTORY=N no processo do notebook e no "
+             "baseline_env; observacao vira 24*N dims). Default 1 = "
+             "frame unico — notebook byte a byte o de sempre. Coleta, "
+             "BC, treino e benchmark do mesmo kernel compartilham o N "
+             "por construcao; demos/checkpoints nao sao "
+             "intercambiaveis entre valores de N.",
+    )
+    parser.add_argument(
         "--cinematic-video", action="store_true",
         help="Vídeo industrial fatia 1 (issue #9): SO o playback muda "
              "— viz newton_gl -> newton_rtx (path tracer OVRTX; extra "
@@ -127,6 +138,8 @@ def main() -> None:
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
     if args.bc_exp1 and not args.bc_warmstart:
         parser.error("--bc-exp1 exige --bc-warmstart")
+    if args.obs_history < 1:
+        parser.error("--obs-history deve ser >= 1 (1 = frame unico)")
     if args.bc_warmstart and args.train_num_envs == 64 \
             and args.train_max_iterations == 500:
         # Regressao da BC v6: sem as flags, o treino warm-start saiu
@@ -539,6 +552,36 @@ def main() -> None:
                 f"'--num_envs', '{args.train_num_envs}', "
                 f"'--max_iterations', '{args.train_max_iterations}'")
             cell["source"] = source.splitlines(keepends=True)
+    # Experimento OBS-2 (issue #8), só com --obs-history > 1: a
+    # variável entra no processo do notebook E no baseline_env, para
+    # TODOS os subprocessos que criam a tarefa (coleta, eval do BC,
+    # treino por qualquer entrada — o isaaclab train herda o environ
+    # do notebook, não o baseline_env —, playback e benchmark) verem
+    # a mesma história. Dimensão de observação divergente entre
+    # coleta e treino quebraria o BC/warm-start silenciosamente.
+    # Com o default (1) nada aqui roda e o notebook é o de sempre.
+    if args.obs_history > 1:
+        anchor = ("    baseline_env['PYTHONPATH'] = str(project_dir / 'src')"
+                  " + os.pathsep + baseline_env.get('PYTHONPATH', '')\n")
+        injection = (
+            anchor
+            + f"    os.environ['FANUC_CELL_OBS_HISTORY'] = "
+              f"'{args.obs_history}'\n"
+            + f"    baseline_env['FANUC_CELL_OBS_HISTORY'] = "
+              f"'{args.obs_history}'\n"
+            + f"    runtime_report['obs_history'] = {args.obs_history}\n"
+        )
+        found = False
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if anchor in source:
+                source = source.replace(anchor, injection, 1)
+                found = True
+            cell["source"] = source.splitlines(keepends=True)
+        if not found:
+            raise RuntimeError(
+                "anchor do baseline_env nao encontrado para injetar "
+                "FANUC_CELL_OBS_HISTORY")
     # Experimento BC (issue #3), só com --bc-warmstart: copia os
     # scripts BC para o projeto gerado, insere coleta+pré-treino
     # antes do treino e troca o comando de treino pela entrada
