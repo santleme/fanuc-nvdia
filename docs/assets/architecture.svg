@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="668" viewBox="0 0 1180 668" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1180" height="668" fill="#ffffff"/>
+
+  <!-- ===== Layer panels ===== -->
+  <!-- Layer 1 -->
+  <rect x="20" y="24" width="352" height="356" rx="10" fill="#eef4fb" stroke="#2f6db3" stroke-width="1.5"/>
+  <text x="40" y="56" font-size="16" font-weight="700" fill="#1f2937">Layer 1 — Pure Python core</text>
+  <text x="40" y="76" font-size="12" fill="#4b5563">src/fanuc_cell/ — deterministic, dependency-light</text>
+
+  <rect x="38" y="92" width="316" height="46" rx="6" fill="#ffffff" stroke="#b9cfe6"/>
+  <text x="50" y="112" font-size="13" font-weight="600" fill="#1f2937">kinematics.py</text>
+  <text x="50" y="129" font-size="11.5" fill="#4b5563">FK, Jacobians, damped-least-squares IK</text>
+
+  <rect x="38" y="146" width="316" height="46" rx="6" fill="#ffffff" stroke="#b9cfe6"/>
+  <text x="50" y="166" font-size="13" font-weight="600" fill="#1f2937">task.py</text>
+  <text x="50" y="183" font-size="11.5" fill="#4b5563">Deterministic episode + scripted teacher (0.865 success)</text>
+
+  <rect x="38" y="200" width="316" height="46" rx="6" fill="#ffffff" stroke="#b9cfe6"/>
+  <text x="50" y="220" font-size="13" font-weight="600" fill="#1f2937">demos.py · bc.py</text>
+  <text x="50" y="237" font-size="11.5" fill="#4b5563">Demo collection and behavior cloning (NumPy MLP)</text>
+
+  <rect x="38" y="254" width="316" height="46" rx="6" fill="#ffffff" stroke="#b9cfe6"/>
+  <text x="50" y="274" font-size="13" font-weight="600" fill="#1f2937">anchored_ppo.py</text>
+  <text x="50" y="291" font-size="11.5" fill="#4b5563">BC/KL anchor + tanh step gating (flag-gated)</text>
+
+  <rect x="38" y="308" width="316" height="46" rx="6" fill="#ffffff" stroke="#b9cfe6"/>
+  <text x="50" y="328" font-size="13" font-weight="600" fill="#1f2937">benchmark_stats.py · phone_home.py</text>
+  <text x="50" y="345" font-size="11.5" fill="#4b5563">Multi-seed statistics (95% CI) · live kernel telemetry</text>
+
+  <text x="40" y="372" font-size="11.5" font-weight="600" fill="#2f6db3">NumPy only · no GPU · 164 tests · GitHub Actions CI</text>
+
+  <!-- Layer 2 -->
+  <rect x="414" y="24" width="352" height="356" rx="10" fill="#f2f7e8" stroke="#5b8c2a" stroke-width="1.5"/>
+  <text x="434" y="56" font-size="16" font-weight="700" fill="#1f2937">Layer 2 — Isaac Lab task</text>
+  <text x="434" y="76" font-size="12" fill="#4b5563">isaaclab_overlay/ — manager-based environment</text>
+
+  <rect x="432" y="92" width="316" height="46" rx="6" fill="#ffffff" stroke="#c3d6ab"/>
+  <text x="444" y="112" font-size="13" font-weight="600" fill="#1f2937">env_cfg.py</text>
+  <text x="444" y="129" font-size="11.5" fill="#4b5563">Scene, rewards, terminations, success definition</text>
+
+  <rect x="432" y="146" width="316" height="46" rx="6" fill="#ffffff" stroke="#c3d6ab"/>
+  <text x="444" y="166" font-size="13" font-weight="600" fill="#1f2937">mdp/cell.py</text>
+  <text x="444" y="183" font-size="11.5" fill="#4b5563">Conveyor advance, capture, per-finger contact sensing</text>
+
+  <rect x="432" y="200" width="316" height="46" rx="6" fill="#ffffff" stroke="#c3d6ab"/>
+  <text x="444" y="220" font-size="13" font-weight="600" fill="#1f2937">agents/rsl_rl_ppo_cfg.py</text>
+  <text x="444" y="237" font-size="11.5" fill="#4b5563">RSL-RL PPO configuration (MLP 256·128·64, 24-dim obs)</text>
+
+  <rect x="432" y="254" width="316" height="46" rx="6" fill="#ffffff" stroke="#c3d6ab"/>
+  <text x="444" y="274" font-size="13" font-weight="600" fill="#1f2937">Task ID</text>
+  <text x="444" y="291" font-size="11.5" fill="#4b5563">Fanuc-Conveyor-PickPlace-M10id12-v0</text>
+
+  <rect x="432" y="308" width="316" height="46" rx="6" fill="#ffffff" stroke="#c3d6ab"/>
+  <text x="444" y="328" font-size="13" font-weight="600" fill="#1f2937">Cinematic scene variant</text>
+  <text x="444" y="345" font-size="11.5" fill="#4b5563">PBR materials + visual-only set (playback only)</text>
+
+  <text x="434" y="372" font-size="11.5" font-weight="600" fill="#5b8c2a">Isaac Lab 3.0.0 · OvPhysX · kit-less (Newton under spike)</text>
+
+  <!-- Layer 3 -->
+  <rect x="808" y="24" width="352" height="356" rx="10" fill="#f3eefb" stroke="#6d4fc2" stroke-width="1.5"/>
+  <text x="828" y="56" font-size="16" font-weight="700" fill="#1f2937">Layer 3 — Kaggle pipeline</text>
+  <text x="828" y="76" font-size="12" fill="#4b5563">scripts/ — every heavy run executes here, by design</text>
+
+  <rect x="826" y="92" width="316" height="46" rx="6" fill="#ffffff" stroke="#c9bde8"/>
+  <text x="838" y="112" font-size="13" font-weight="600" fill="#1f2937">build_kaggle_notebook.py</text>
+  <text x="838" y="129" font-size="11.5" fill="#4b5563">Self-contained notebook; project embedded as base64 zip</text>
+
+  <rect x="826" y="146" width="316" height="46" rx="6" fill="#ffffff" stroke="#c9bde8"/>
+  <text x="838" y="166" font-size="13" font-weight="600" fill="#1f2937">Runtime report</text>
+  <text x="838" y="183" font-size="11.5" fill="#4b5563">Per-stage timings, exits and metrics in runtime-report.json</text>
+
+  <rect x="826" y="200" width="316" height="46" rx="6" fill="#ffffff" stroke="#c9bde8"/>
+  <text x="838" y="220" font-size="13" font-weight="600" fill="#1f2937">Install cache (dataset)</text>
+  <text x="838" y="237" font-size="11.5" fill="#4b5563">Isaac Lab tree snapshotted to a Kaggle dataset, gated restore</text>
+
+  <rect x="826" y="254" width="316" height="46" rx="6" fill="#ffffff" stroke="#c9bde8"/>
+  <text x="838" y="274" font-size="13" font-weight="600" fill="#1f2937">Eval-only mode</text>
+  <text x="838" y="291" font-size="11.5" fill="#4b5563">Checkpoints packaged as datasets; replay without retraining</text>
+
+  <rect x="826" y="308" width="316" height="46" rx="6" fill="#ffffff" stroke="#c9bde8"/>
+  <text x="838" y="328" font-size="13" font-weight="600" fill="#1f2937">Live telemetry</text>
+  <text x="838" y="345" font-size="11.5" fill="#4b5563">Stage posts + 120 s heartbeat to an ntfy.sh topic per launch</text>
+
+  <text x="828" y="372" font-size="11.5" font-weight="600" fill="#6d4fc2">Kaggle T4 · private kernels · monitored to a terminal verdict</text>
+
+  <!-- Arrows between layers -->
+  <line x1="372" y1="202" x2="408" y2="202" stroke="#6b7280" stroke-width="2"/>
+  <polygon points="408,202 398,197 398,207" fill="#6b7280"/>
+  <text x="390" y="188" font-size="11" fill="#4b5563" text-anchor="middle">shared</text>
+  <text x="390" y="222" font-size="11" fill="#4b5563" text-anchor="middle">geometry</text>
+
+  <line x1="766" y1="202" x2="802" y2="202" stroke="#6b7280" stroke-width="2"/>
+  <polygon points="802,202 792,197 792,207" fill="#6b7280"/>
+  <text x="784" y="188" font-size="11" fill="#4b5563" text-anchor="middle">task</text>
+  <text x="784" y="222" font-size="11" fill="#4b5563" text-anchor="middle">bundled</text>
+
+  <!-- ===== Experiment loop ===== -->
+  <rect x="20" y="404" width="1140" height="240" rx="10" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="40" y="434" font-size="15" font-weight="700" fill="#1f2937">Pre-registered experiment loop</text>
+  <text x="40" y="454" font-size="12" fill="#4b5563">Hypothesis, protocol and verdict gates are fixed in SPEC.md before launch; every run is classified PROOF / PARTIAL / KILL against them.</text>
+
+  <!-- Row 1 -->
+  <g font-size="12">
+    <rect x="40" y="474" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="56" y="497" font-weight="600" fill="#1f2937">1 · Probe</text>
+    <text x="56" y="515" fill="#4b5563">Finite-state / NaN checks</text>
+
+    <rect x="316" y="474" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="332" y="497" font-weight="600" fill="#1f2937">2 · Scripted baseline</text>
+    <text x="332" y="515" fill="#4b5563">Teacher must pass in physics first</text>
+
+    <rect x="592" y="474" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="608" y="497" font-weight="600" fill="#1f2937">3 · Demo collection</text>
+    <text x="608" y="515" fill="#4b5563">200 teacher episodes (seeds 1000+)</text>
+
+    <rect x="868" y="474" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="884" y="497" font-weight="600" fill="#1f2937">4 · BC pretraining</text>
+    <text x="884" y="515" fill="#4b5563">Demo-quality gate: teacher ≥ 0.80</text>
+
+    <!-- Row 2 (flow continues right-to-left) -->
+    <rect x="868" y="556" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="884" y="579" font-weight="600" fill="#1f2937">5 · PPO training</text>
+    <text x="884" y="597" fill="#4b5563">256 envs × 1500 iterations (T4)</text>
+
+    <rect x="592" y="556" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="608" y="579" font-weight="600" fill="#1f2937">6 · Playback</text>
+    <text x="608" y="597" fill="#4b5563">OpenGL video · RTX cinematic variant</text>
+
+    <rect x="316" y="556" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="332" y="579" font-weight="600" fill="#1f2937">7 · Multi-seed benchmark</text>
+    <text x="332" y="597" fill="#4b5563">Seeds 101 / 202 / 303 · mean ± 95% CI</text>
+
+    <rect x="40" y="556" width="252" height="52" rx="6" fill="#ffffff" stroke="#9ca3af"/>
+    <text x="56" y="579" font-weight="600" fill="#1f2937">8 · Verdict</text>
+    <text x="56" y="597" fill="#4b5563">Recorded in SPEC.md, win or lose</text>
+  </g>
+
+  <!-- Loop arrows -->
+  <g stroke="#6b7280" stroke-width="2">
+    <line x1="292" y1="500" x2="310" y2="500"/><polygon points="316,500 306,495 306,505" fill="#6b7280" stroke="none"/>
+    <line x1="568" y1="500" x2="586" y2="500"/><polygon points="592,500 582,495 582,505" fill="#6b7280" stroke="none"/>
+    <line x1="844" y1="500" x2="862" y2="500"/><polygon points="868,500 858,495 858,505" fill="#6b7280" stroke="none"/>
+    <line x1="994" y1="526" x2="994" y2="550"/><polygon points="994,556 989,546 999,546" fill="#6b7280" stroke="none"/>
+    <line x1="868" y1="582" x2="850" y2="582"/><polygon points="844,582 854,577 854,587" fill="#6b7280" stroke="none"/>
+    <line x1="592" y1="582" x2="574" y2="582"/><polygon points="568,582 578,577 578,587" fill="#6b7280" stroke="none"/>
+    <line x1="316" y1="582" x2="298" y2="582"/><polygon points="292,582 302,577 302,587" fill="#6b7280" stroke="none"/>
+  </g>
+</svg>
