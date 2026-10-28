@@ -156,7 +156,7 @@ def main() -> None:
                 "print(json.dumps(manifest, indent=2))\n"
                 "print('PROXIMO PASSO (manual, uma vez): criar o dataset '\n"
                 "'fanuc-isaaclab-cache a partir da saida isaaclab-cache/ '\n"
-                "deste kernel — docs/isaac-cache.md.')\n"
+                "'deste kernel — docs/isaac-cache.md.')\n"
             ),
         ],
         "metadata": {
