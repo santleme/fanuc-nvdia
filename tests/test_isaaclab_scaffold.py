@@ -470,3 +470,38 @@ def test_cinematic_scene_variant_keeps_physics_and_mdp() -> None:
         assert "Cinematic" not in block, cfg_cls
     physics = _class_block(env_cfg, "class CellPhysicsCfg", "@configclass")
     assert "default: OvPhysxCfg = ovphysx" in physics
+
+
+def test_builder_cinematic_survives_newton_physics_mode(
+        tmp_path, monkeypatch) -> None:
+    """Issue #9 × issue #2: cinematic + física não-default no mesmo build.
+
+    O modo newton reescreve TODAS as listas de comando do notebook
+    (remove o par '--extra', 'ovphysx' e troca o token physics=). O
+    builder afirma no comentário que as âncoras do cinematic foram
+    escolhidas para sobreviver a essa reescrita — este teste pina a
+    afirmação: o playback sai em newton_rtx com o extra ovrtx e o
+    token da física nova, e o treino ganha a física nova SEM ganhar
+    nada do cinematic.
+    """
+    source = _build_notebook_source(
+        tmp_path / "n", monkeypatch,
+        ["--physics", "newton_mjwarp", "--cinematic-video"])
+
+    end = "runtime_report['policy_playback_exit']"
+    playback = _statement(source, "playback = run(", end)
+    assert "'--viz', 'newton_rtx', '--video', '--video_length', '400'" in playback
+    assert "'--extra', 'video', '--extra', 'ovrtx', 'isaaclab', 'play'" in playback
+    assert "physics=newton_mjwarp" in playback
+    assert "'--extra', 'ovphysx'" not in playback
+    assert "cwd=project_dir, env=cinematic_env" in playback
+
+    training = _statement(source, "training = run(",
+                          "runtime_report['ppo_training_exit']")
+    assert "physics=newton_mjwarp" in training
+    assert "newton_rtx" not in training and "ovrtx" not in training
+
+    # O cinematic continua confinado ao playback, mesmo com a física
+    # trocada: um único rtx e um único extra ovrtx no notebook inteiro.
+    assert source.count("newton_rtx") == 1
+    assert source.count("'--extra', 'ovrtx'") == 1
