@@ -24,6 +24,7 @@ def bundled_project() -> str:
         "assets/cell_geometry.json",
         "assets/m10id12_robot.urdf",
         "src/fanuc_cell/__init__.py",
+        "src/fanuc_cell/benchmark_stats.py",
         "src/fanuc_cell/kinematics.py",
         "src/fanuc_cell/task.py",
         "src/fanuc_cell/render.py",
@@ -40,6 +41,7 @@ def bundled_project() -> str:
         "scripts/train_ppo_bc.py",
         "scripts/eval_bc_actor.py",
         "tests/test_kinematics.py",
+        "tests/test_benchmark_stats.py",
         "tests/test_task.py",
         "tests/test_static_clearance.py",
         "tests/test_rerun_log.py",
@@ -93,6 +95,14 @@ def main() -> None:
     )
     parser.add_argument("--train-num-envs", type=int, default=64)
     parser.add_argument("--train-max-iterations", type=int, default=500)
+    parser.add_argument(
+        "--benchmark-seeds",
+        default="101,202,303",
+        help="Seeds do benchmark oficial multi-seed (B3, issue #10), "
+             "separadas por vírgula. Default = o protocolo pré-"
+             "registrado (101,202,303). Uma seed só reproduz a "
+             "leitura legada de seed única (std/IC95 = 0).",
+    )
     parser.add_argument(
         "--kernel-slug",
         default=KERNEL_SLUG,
@@ -461,9 +471,13 @@ def main() -> None:
                 "    runtime_report['policy_video_bytes'] = policy_video.stat().st_size\n"
                 "    # Benchmark multi-seed (B3, issue #10): seed unica nao\n"
                 "    # separa sinal de ruido — o veredito oficial passa a ser\n"
-                "    # media +- desvio de 3 seeds fixas.\n"
+                "    # media +- desvio das seeds fixas (default do protocolo:\n"
+                "    # 101, 202, 303; --benchmark-seeds troca a lista). Por\n"
+                "    # seed, success_rate (portao) e grasp_rate (degrau\n"
+                "    # intermediario, quando o benchmark o reporta).\n"
                 "    benchmark_seeds = (101, 202, 303)\n"
                 "    seed_rates = []\n"
+                "    seed_grasp_rates = []\n"
                 "    runtime_report['policy_evaluation_runs'] = []\n"
                 "    for _seed in benchmark_seeds:\n"
                 "        evaluation_dir = Path(f'/kaggle/working/policy-evaluation-{_seed}')\n"
@@ -490,24 +504,53 @@ def main() -> None:
                 "        evaluation_data = [json.loads(path.read_text()) for path in evaluation_results]\n"
                 "        runtime_report['policy_evaluation'] = evaluation_data[-1]\n"
                 "        _rate = None\n"
+                "        _grasp = None\n"
                 "        for _data in evaluation_data:\n"
                 "            for _record in (_data if isinstance(_data, list) else [_data]):\n"
                 "                if not isinstance(_record, dict):\n"
                 "                    continue\n"
                 "                if _record.get('success_rate') is not None:\n"
                 "                    _rate = _record['success_rate']\n"
+                "                if _record.get('grasp_rate') is not None:\n"
+                "                    _grasp = _record['grasp_rate']\n"
                 "                for _m in (_record.get('measurements') or []):\n"
                 "                    if isinstance(_m, dict) and str(_m.get('name', '')).endswith('play success_rate'):\n"
                 "                        _rate = _m.get('value')\n"
+                "                    if isinstance(_m, dict) and str(_m.get('name', '')).endswith('play grasp_rate') and _m.get('value') is not None:\n"
+                "                        _grasp = _m.get('value')\n"
                 "        if _rate is None:\n"
                 "            save_report()\n"
                 "            raise RuntimeError('Isaac Lab benchmark did not report Metrics/success_rate for completed episodes.')\n"
                 "        seed_rates.append(_rate)\n"
+                "        seed_grasp_rates.append(_grasp)\n"
+                "        runtime_report['policy_evaluation_runs'][-1]['success_rate'] = _rate\n"
+                "        runtime_report['policy_evaluation_runs'][-1]['grasp_rate'] = _grasp\n"
+                "    # Agregacao B3: matematica unica e testada em\n"
+                "    # fanuc_cell.benchmark_stats (media, desvio amostral\n"
+                "    # ddof=1, IC95 da media). O src do projeto gerado ja\n"
+                "    # foi copiado para project_dir/src nesta celula.\n"
+                "    import sys as _sys\n"
+                "    if str(project_dir / 'src') not in _sys.path:\n"
+                "        _sys.path.insert(0, str(project_dir / 'src'))\n"
+                "    from fanuc_cell.benchmark_stats import format_rate_summary, summarize_rates\n"
+                "    _summary = summarize_rates(seed_rates)\n"
+                "    runtime_report['policy_benchmark_seeds'] = list(benchmark_seeds)\n"
                 "    runtime_report['policy_success_rates'] = seed_rates\n"
-                "    _mean = sum(seed_rates) / len(seed_rates)\n"
-                "    _var = sum((r - _mean) ** 2 for r in seed_rates) / len(seed_rates)\n"
-                "    runtime_report['policy_success_rate'] = _mean\n"
-                "    runtime_report['policy_success_rate_std'] = _var ** 0.5\n"
+                "    runtime_report['policy_success_rate'] = _summary['mean']\n"
+                "    runtime_report['policy_success_rate_std'] = _summary['std']\n"
+                "    runtime_report['policy_success_rate_ci95'] = _summary['ci95_half']\n"
+                "    print('BENCHMARK B3 success_rate: ' + format_rate_summary(_summary))\n"
+                "    runtime_report['policy_grasp_rates'] = seed_grasp_rates\n"
+                "    _grasp_known = [g for g in seed_grasp_rates if g is not None]\n"
+                "    if _grasp_known:\n"
+                "        _gsummary = summarize_rates(_grasp_known)\n"
+                "        runtime_report['policy_grasp_rate'] = _gsummary['mean']\n"
+                "        runtime_report['policy_grasp_rate_std'] = _gsummary['std']\n"
+                "        runtime_report['policy_grasp_rate_ci95'] = _gsummary['ci95_half']\n"
+                "        print('BENCHMARK B3 grasp_rate: ' + format_rate_summary(_gsummary))\n"
+                "    else:\n"
+                "        runtime_report['policy_grasp_rate'] = None\n"
+                "        print('BENCHMARK B3 grasp_rate: nao reportado pelo benchmark (Metrics/grasp_rate ausente); success_rate segue como portao.')\n"
                 "else:\n"
                 "    runtime_report['isaaclab_smoke_exit'] = None\n"
                 "    runtime_report['isaaclab_smoke_skip'] = 'GPU capability or documented Linux driver minimum failed.'\n"
@@ -556,6 +599,31 @@ def main() -> None:
                 "'--num_envs', '64', '--max_iterations', '500'",
                 f"'--num_envs', '{args.train_num_envs}', "
                 f"'--max_iterations', '{args.train_max_iterations}'")
+            cell["source"] = source.splitlines(keepends=True)
+    # Seeds do benchmark multi-seed (B3, issue #10): o default do
+    # protocolo (101, 202, 303) já é o literal da célula; outra
+    # lista troca o token, num lugar só — mesmo padrão da física.
+    # Uma seed só reproduz a leitura legada (std/IC95 = 0).
+    try:
+        benchmark_seeds = tuple(
+            int(part) for part in args.benchmark_seeds.split(",")
+            if part.strip()
+        )
+    except ValueError:
+        parser.error(
+            "--benchmark-seeds aceita inteiros separados por vírgula.")
+    if not benchmark_seeds:
+        parser.error("--benchmark-seeds exige ao menos uma seed.")
+    if benchmark_seeds != (101, 202, 303):
+        rendered = "(" + ", ".join(str(seed) for seed in benchmark_seeds)
+        if len(benchmark_seeds) == 1:
+            rendered += ","
+        rendered += ")"
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            source = source.replace(
+                "benchmark_seeds = (101, 202, 303)",
+                f"benchmark_seeds = {rendered}")
             cell["source"] = source.splitlines(keepends=True)
     # Experimento BC (issue #3), só com --bc-warmstart: copia os
     # scripts BC para o projeto gerado, insere coleta+pré-treino

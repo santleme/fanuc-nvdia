@@ -349,6 +349,57 @@ def test_notebook_benchmark_is_multi_seed_b3() -> None:
     assert "'--seed', str(_seed)," in builder
 
 
+def test_notebook_benchmark_aggregation_uses_tested_module_b3() -> None:
+    # B3 completo: a agregacao da celula vem do modulo puro testado
+    # (fanuc_cell.benchmark_stats), nao de conta inline — media,
+    # desvio amostral e IC95 tem fonte unica. Success E grasp sao
+    # agregados por seed; grasp ausente nao derruba o portao.
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+    assert "from fanuc_cell.benchmark_stats import format_rate_summary, summarize_rates" in builder
+    assert "runtime_report['policy_benchmark_seeds'] = list(benchmark_seeds)" in builder
+    assert "runtime_report['policy_success_rate_ci95'] = _summary['ci95_half']" in builder
+    assert "runtime_report['policy_success_rate'] = _summary['mean']" in builder
+    assert "runtime_report['policy_grasp_rates'] = seed_grasp_rates" in builder
+    assert "play grasp_rate" in builder
+    assert "_record.get('grasp_rate')" in builder
+    assert "runtime_report['policy_grasp_rate_ci95']" in builder
+    # a conta inline antiga (desvio populacional) saiu da celula
+    assert "_var = sum((r - _mean)" not in builder
+    # manifesto do bundle: modulo e testes viajam no zip do kernel
+    assert '"src/fanuc_cell/benchmark_stats.py"' in builder
+    assert '"tests/test_benchmark_stats.py"' in builder
+
+
+def test_builder_benchmark_seeds_parameter_b3(tmp_path, monkeypatch) -> None:
+    # --benchmark-seeds troca a lista do protocolo; o default
+    # mantem o literal registrado (101, 202, 303) byte a byte.
+    default_source = _build_notebook_source(tmp_path, monkeypatch, [])
+    assert "benchmark_seeds = (101, 202, 303)" in default_source
+    custom = _build_notebook_source(
+        tmp_path, monkeypatch, ["--benchmark-seeds", "7,8"])
+    assert "benchmark_seeds = (7, 8)" in custom
+    assert "benchmark_seeds = (101, 202, 303)" not in custom
+    single = _build_notebook_source(
+        tmp_path, monkeypatch, ["--benchmark-seeds", "101"])
+    assert "benchmark_seeds = (101,)" in single
+
+
+def test_grasp_rate_metric_is_exported_for_isaaclab_benchmark() -> None:
+    # B3: Metrics/grasp_rate pelo mesmo canal do success_rate —
+    # termo de peso 0.0 que loga a fracao de episodios com grasp
+    # no reset, para o benchmark reportar grasp por seed.
+    mdp_init = (OVERLAY / "mdp/__init__.py").read_text()
+    env_cfg = (OVERLAY / "config/m10id12/env_cfg.py").read_text()
+    mdp_source = (OVERLAY / "mdp/cell.py").read_text()
+
+    assert "ObjectGraspRate," in mdp_init
+    assert '"ObjectGraspRate"' in mdp_init
+    assert "grasp_rate = RewardTerm(func=mdp.ObjectGraspRate, weight=0.0)" in env_cfg
+    assert "class ObjectGraspRate(ManagerTermBase):" in mdp_source
+    assert '["Metrics/grasp_rate"]' in mdp_source
+    assert "self._episode_grasped |= was_grasped" in mdp_source
+
+
 
 def _class_block(source: str, start: str, end: str) -> str:
     i = source.index(start)
