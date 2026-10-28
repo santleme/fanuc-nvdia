@@ -21,6 +21,7 @@ def bundled_project() -> str:
     payload = io.BytesIO()
     included = [
         "pyproject.toml",
+        "SPEC.md",
         "assets/cell_geometry.json",
         "assets/m10id12_robot.urdf",
         "src/fanuc_cell/__init__.py",
@@ -35,6 +36,7 @@ def bundled_project() -> str:
         "src/fanuc_cell/anchored_ppo.py",
         "src/fanuc_cell/phone_home.py",
         "src/fanuc_cell/gripper_threshold.py",
+        "scripts/build_kaggle_notebook.py",
         "scripts/prepare_isaac_cache.py",
         "scripts/render_demo.py",
         "scripts/run_scripted_demo.py",
@@ -170,7 +172,7 @@ def main() -> None:
         "--phone-home-topic", default="",
         metavar="TOPICO",
         help="Telemetria em tempo real do kernel (regra do fundador, "
-             "28/10/2026): tópico ntfy.sh para onde o notebook manda "
+             "28/10/2026): tópico ntfy para onde o notebook manda "
              "boot, fim de cada estágio e heartbeat de 120 s enquanto "
              "roda — o Kaggle não publica log/saída durante a corrida, "
              "então sem isto uma corrida longa é caixa-preta (uma "
@@ -179,6 +181,12 @@ def main() -> None:
              "célula principal e o tópico é registrado no corpo do "
              "monitor da corrida. Default vazio = sem telemetria, "
              "notebook idêntico ao de sempre.")
+    parser.add_argument(
+        "--phone-home-base", default="https://ntfy.envs.net",
+        metavar="URL",
+        help="Servidor ntfy do phone-home (com --phone-home-topic). "
+             "Default: a instância pública ntfy.envs.net — o ntfy.sh "
+             "é inacessível do ambiente do monitor.")
     parser.add_argument(
         "--single-boot-spike", action="store_true",
         help="Spike B5 (issue #14): probe e baseline num único boot "
@@ -1187,7 +1195,8 @@ def main() -> None:
             f"{module_source!r})\n",
             "sys.path.insert(0, str(working_dir))\n",
             "import phone_home as _ph\n",
-            "_ph.configure(PHONE_HOME_TOPIC)\n",
+            f"_ph.configure(PHONE_HOME_TOPIC, "
+            f"base={args.phone_home_base!r})\n",
             "_ph.start_heartbeat(120)\n",
             "def _ph_stage(name, elapsed):\n",
             "    try:\n",

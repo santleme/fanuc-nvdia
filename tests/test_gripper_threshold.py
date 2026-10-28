@@ -178,32 +178,46 @@ def _zip_names(builder) -> set:
 
 
 def test_probe_wiring_and_bundles() -> None:
-    probe = (ROOT / "scripts/probe_gripper_threshold.py").read_text()
-    assert "VERDICT_JSON:" in probe
-    assert "analyze_threshold_samples" in probe
-    assert 'os.environ.get("FANUC_CELL_PHYSICS", "ovphysx")' in probe
-    assert '"pinch"' in probe and '"empty"' in probe
-    assert "teacher_gripper_action" in probe  # mesmo fechamento do baseline
+    # Este teste viaja nos bundles dos dois kernels; dentro de um
+    # bundle extraído, os arquivos que só existem no repo (script do
+    # probe no bundle principal, builders cruzados, artefatos gerados
+    # kaggle-probe/) não estão lá — essas checagens pulam nesse
+    # contexto e rodam inteiras no repo. A regressão do manifesto
+    # (módulo no zip do kernel principal) roda sempre que o builder
+    # principal está presente. (Correção 28/10/2026: a suíte local do
+    # kernel eval-only morreu nestas leituras — 14 falhas FileNotFound.)
+    probe_script = ROOT / "scripts/probe_gripper_threshold.py"
+    if probe_script.exists():
+        probe = probe_script.read_text()
+        assert "VERDICT_JSON:" in probe
+        assert "analyze_threshold_samples" in probe
+        assert 'os.environ.get("FANUC_CELL_PHYSICS", "ovphysx")' in probe
+        assert '"pinch"' in probe and '"empty"' in probe
+        assert "teacher_gripper_action" in probe  # mesmo fechamento do baseline
 
     # O zip do kernel principal carrega o módulo novo (regressão da
     # BC v5: módulo fora do manifesto = kernel morto no import).
-    main_names = _zip_names(_load_builder("build_kaggle_notebook"))
-    assert "src/fanuc_cell/gripper_threshold.py" in main_names
+    if (ROOT / "scripts/build_kaggle_notebook.py").exists():
+        main_names = _zip_names(_load_builder("build_kaggle_notebook"))
+        assert "src/fanuc_cell/gripper_threshold.py" in main_names
 
     # O kernel do probe é separado e carrega script + módulo + teste.
-    probe_names = _zip_names(_load_builder("build_probe_notebook"))
-    assert "scripts/probe_gripper_threshold.py" in probe_names
-    assert "src/fanuc_cell/gripper_threshold.py" in probe_names
-    assert "tests/test_gripper_threshold.py" in probe_names
+    probe_meta = ROOT / "kaggle-probe/kernel-metadata.json"
+    if (ROOT / "scripts/build_probe_notebook.py").exists() \
+            and probe_meta.exists():
+        probe_names = _zip_names(_load_builder("build_probe_notebook"))
+        assert "scripts/probe_gripper_threshold.py" in probe_names
+        assert "src/fanuc_cell/gripper_threshold.py" in probe_names
+        assert "tests/test_gripper_threshold.py" in probe_names
 
-    metadata = json.loads((ROOT / "kaggle-probe/kernel-metadata.json").read_text())
-    assert metadata["id"].endswith("/fanuc-probe-gripper-threshold")
-    assert metadata["enable_gpu"] is True
-    notebook = json.loads(
-        (ROOT / "kaggle-probe/fanuc-probe-gripper-threshold.ipynb").read_text())
-    source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
-    assert "probe_gripper_threshold.py" in source
-    assert "VERDICT_JSON:" in source
+        metadata = json.loads(probe_meta.read_text())
+        assert metadata["id"].endswith("/fanuc-probe-gripper-threshold")
+        assert metadata["enable_gpu"] is True
+        notebook = json.loads(
+            (ROOT / "kaggle-probe/fanuc-probe-gripper-threshold.ipynb").read_text())
+        source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+        assert "probe_gripper_threshold.py" in source
+        assert "VERDICT_JSON:" in source
 
 
 def test_protocol_is_preregistered_in_spec() -> None:

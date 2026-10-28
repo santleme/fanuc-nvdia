@@ -40,7 +40,8 @@ def sent(monkeypatch):
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     phone_home._state.update(
-        {"topic": None, "started_at": None, "last_stage": None})
+        {"topic": None, "base": phone_home._DEFAULT_BASE,
+         "started_at": None, "last_stage": None})
     return calls
 
 
@@ -55,8 +56,14 @@ def test_no_topic_is_silent_noop(sent):
 def test_note_posts_to_topic(sent):
     phone_home.configure("fanuc-teste-123")
     assert phone_home.note("boot: kernel iniciado") is True
-    assert sent == [("https://ntfy.sh/fanuc-teste-123",
+    assert sent == [("https://ntfy.envs.net/fanuc-teste-123",
                      "boot: kernel iniciado")]
+
+
+def test_configure_base_override(sent):
+    phone_home.configure("fanuc-teste-123", base="https://exemplo.local/")
+    assert phone_home.note("base propria") is True
+    assert sent[-1][0] == "https://exemplo.local/fanuc-teste-123"
 
 
 def test_stage_done_records_and_posts(sent):
@@ -72,7 +79,8 @@ def test_network_failure_is_swallowed(monkeypatch):
 
     monkeypatch.setattr(urllib.request, "urlopen", boom)
     phone_home._state.update(
-        {"topic": "fanuc-teste-123", "started_at": None, "last_stage": None})
+        {"topic": "fanuc-teste-123", "base": phone_home._DEFAULT_BASE,
+         "started_at": None, "last_stage": None})
     assert phone_home.note("nao pode levantar") is False
 
 
@@ -124,14 +132,16 @@ def test_builder_flag_and_manifest_wiring() -> None:
 def test_builder_default_notebook_has_no_phone_home(tmp_path, monkeypatch):
     source = _build(tmp_path, monkeypatch, [])
     assert "PHONE_HOME_TOPIC" not in source
-    assert "ntfy.sh" not in source
+    assert "ntfy.envs.net" not in source
 
 
 def test_builder_phone_home_notebook_is_wired(tmp_path, monkeypatch):
     source = _build(tmp_path, monkeypatch,
                     ["--phone-home-topic", "fanuc-teste-123"])
     assert "PHONE_HOME_TOPIC = 'fanuc-teste-123'" in source
-    assert "ntfy.sh" in source
+    assert "ntfy.envs.net" in source
+    assert "_ph.configure(PHONE_HOME_TOPIC, base='https://ntfy.envs.net')" \
+        in source
     assert "_ph.start_heartbeat(120)" in source
     assert "_ph_stage(name, elapsed)" in source
     # o gancho entra no stage_end, depois do print [PERF] do estágio
