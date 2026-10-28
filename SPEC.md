@@ -887,3 +887,28 @@ passa a ser a média, com `policy_success_rates` (lista) e
 ruído — os vereditos até a BC v7 foram todos de seed única (101) e
 devem ser lidos com essa ressalva. A corrida definitiva usa este
 formato.
+
+### Estudo de observabilidade/memória (issue #8) e Experimento 1 (27/10/2026)
+
+Estudo completo em `docs/estudo-observabilidade-2026-10-27.md`.
+Conclusão principal: a hipótese com mais suporte **não é
+observabilidade** — é **destruição do warm-start na interface
+BC→PPO**: `grasp` em 0,0 desde o início do treino da v7 indica que o
+comportamento clonado nunca se manifestou nos rollouts do PPO
+(mecanismos documentados: ruído de exploração inicial, bônus de
+entropia no fine-tuning, crítico aleatório gerando vantagens-lixo,
+mismatch de normalização, ausência de âncora de imitação — o
+antídoto canônico é DAPG: imitação continuada durante o RL).
+
+**Experimento 1 (protocolo pré-registrado; um kernel, dois
+estágios)**: (A) rollout determinístico do **ator BC puro** em 200
+episódios (benchmark do ator sem PPO); (B) **PPO warm-start
+protegido** no budget da v7 (256×1500): std inicial 0,15, entropia 0,
+normalização de obs idêntica à do BC, crítico aquecido com o ator
+congelado por 50 iterações. Benchmark multi-seed (B3).
+Portões: **PROVA** = benchmark ≥ 0,30. **PARCIAL** = sucesso em
+(0; 0,30), ou grasp final ≥ 0,20 sem sucesso, ou grasp alto que
+decai (→ próximo passo: DAPG). **MATA** com leituras obrigatórias:
+grasp@iteração-0 alto que colapsa confirma esquecimento (→ DAPG);
+grasp do Estágio A < 0,05 condena o BC em si (→ estado
+ampliado/DAgger), não o PPO. Aguardando decisão do fundador.
