@@ -214,6 +214,29 @@ def test_builder_cache_composes_with_newton_physics(tmp_path, monkeypatch) -> No
     compile(main_cell, "<isaac-install-cell-newton>", "exec")
 
 
+def test_builder_cache_composes_with_benchmark_seeds(
+        tmp_path, monkeypatch) -> None:
+    # B4 (issue #12) x B3 (issue #10): as duas flags juntas — o merge
+    # das duas frentes no builder — geram um notebook com a fiação do
+    # cache E a lista de seeds trocada, células geradas válidas.
+    argv = ["--isaac-cache-dataset", "tester/fanuc-isaaclab-cache",
+            "--benchmark-seeds", "7,8"]
+    source, metadata, notebook = _build_main_notebook(
+        tmp_path, monkeypatch, argv)
+    assert metadata["dataset_sources"] == ["tester/fanuc-isaaclab-cache"]
+    assert "find_cache_mount" in source
+    assert "benchmark_seeds = (7, 8)" in source
+    assert "benchmark_seeds = (101, 202, 303)" not in source
+    install_cell = next(
+        "".join(cell["source"]) for cell in notebook["cells"]
+        if "find_cache_mount" in "".join(cell["source"]))
+    compile(install_cell, "<isaac-install-cell-seeds>", "exec")
+    benchmark_cell = next(
+        "".join(cell["source"]) for cell in notebook["cells"]
+        if "benchmark_seeds = (7, 8)" in "".join(cell["source"]))
+    compile(benchmark_cell, "<benchmark-cell-cache>", "exec")
+
+
 def test_builder_cache_dataset_requires_full_slug(tmp_path, monkeypatch) -> None:
     builder = _load_builder("builder_cache_slug", "build_kaggle_notebook.py")
     monkeypatch.setattr(builder, "KAGGLE_DIR", tmp_path)
