@@ -989,6 +989,38 @@ kernel chegou a ser lançada sem a correção e foi substituída pela
 v9 minutos depois, ainda no estágio de coleta — nenhum resultado da
 v8 é válido nem será lido como experimento.
 
+## Modo eval-only (issue #11, B2) — implementado em 27/10/2026
+
+Avaliar checkpoint existente sem repetir treino: o checkpoint é
+empacotado como dataset Kaggle (`scripts/package_checkpoint_dataset.py`
+gera a pasta com o .pt de nome preservado, `dataset-metadata.json` e
+`checkpoint-manifest.json` com sha256/bytes/origem; upload pelo
+`create-dataset` do conector custom.kaggle) e o builder ganha o modo
+`--eval-only --eval-checkpoint <dataset>/<arquivo>.pt`:
+
+- O builder anexa o dataset ao kernel (`dataset_sources` no metadata;
+  o push reescreve o dono com `--usuario`, como já faz com o id).
+- Na célula principal, o bloco de treino é substituído pela resolução
+  do checkpoint em `/kaggle/input/<dataset>/<arquivo>.pt`, com portão
+  de existência; playback e benchmark multi-seed (B3) usam
+  `--checkpoint eval_checkpoint` — **nada de `latest`** (lição da
+  BC v6) nem de glob por mtime. Probe de NaN e baseline scriptado
+  (sanidade) são mantidos; o runtime-report registra `eval_only`,
+  o caminho e os bytes do checkpoint.
+- Validações do builder: `--eval-only` exige checkpoint explícito
+  relativo a /kaggle/input, terminando em `.pt`, sem componente
+  `latest`; incompatível com `--bc-warmstart`. Compõe com
+  `--cinematic-video` (o caso da issue #9: vídeo de checkpoint já
+  treinado) e com o passe de física. Sem as flags, o notebook gerado
+  é idêntico ao de sempre (células e conteúdo do zip conferidos
+  contra a main).
+- Protocolo da 1ª corrida: montar com slug próprio (ex.:
+  `fanuc-eval-only`), avaliar o checkpoint final da corrida BC
+  vigente e conferir (a) tempo total de kernel < 8 min até o fim do
+  benchmark e (b) `policy_success_rates` por seed idênticos aos da
+  corrida original. Até essa corrida, a aceitação está implementada
+  mas não verificada em voo.
+
 ### Protocolo do vídeo industrial — newton_rtx + cena cinematic (issue #9, pré-registrado em 27/10/2026)
 
 Auditoria em `docs/audit-video-cena-2026-10-27.md` (Rota 2). O
@@ -1048,3 +1080,36 @@ o zip do bundle ganha os arquivos (inertes) do núcleo do cache. **Pendente de
 corrida** (aceitação da issue): rodar o construtor, criar o dataset
 `fanuc-isaaclab-cache` da saída dele e medir a primeira corrida
 completa restaurada contra a linha de base clone+sync.
+
+### Protocolo do spike B5 — probe+baseline num boot único (issue #14, pré-registrado em 27/10/2026)
+
+Desenho: `scripts/probe_and_baseline.py` roda os dois estágios NO
+MESMO processo via `runpy` — cada estágio executa o seu arquivo
+intacto, como `__main__`, com o próprio argv — ou seja, duas
+entradas sequenciais em `launch_simulation` sob um único boot do
+Isaac Sim. Os estágios separados não mudam em nada. O builder ganha
+a flag opt-in `--single-boot-spike`, que troca os dois comandos do
+kernel por um só e registra `single_boot_spike` no runtime-report
+(exit de cada estágio + veredito), mantendo derivadas as chaves
+atuais (`ppo_nan_probe_exit`, `scripted_baseline`) e os dois
+portões (exit != 0 aborta; gate grasp/place do baseline idêntico).
+A flag não combina com `--bc-warmstart` (spike isolado, protocolo
+próprio).
+
+Protocolo: kernel da linha principal construído com
+`--single-boot-spike` (mesma física e parâmetros dos boots
+separados: probe 64 envs/24 steps/seed 7, baseline seed 23) e
+comparação direta com a corrida de boots separados da mesma versão
+de código. **ADOTA** se, dentro do mesmo processo, o probe sair 0
+(finite) e o baseline produzir o mesmo veredito (success +
+scripted_grasp_sensor_passed). **MATA** se o segundo
+`launch_simulation` falhar, travar ou divergir — o spike encerra
+sem custo e os boots separados ficam. A economia esperada é
+<1 min/corrida: o que está em julgamento é a reentrada, não o tempo.
+
+Status: implementação e testes estruturais prontos em 27/10/2026
+(suíte verde: 69/69 na base da branch e 71/71 após o merge da
+main, incluindo o núcleo de orquestração exercitado com
+estágios falsos — SystemExit, exceção e argv conferidos). O
+veredito aguarda a corrida do spike no Kaggle: nenhuma simulação
+roda na VM, e a reentrada só se prova com o Isaac de verdade.

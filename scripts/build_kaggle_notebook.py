@@ -35,6 +35,7 @@ def bundled_project() -> str:
         "scripts/prepare_isaac_cache.py",
         "scripts/render_demo.py",
         "scripts/run_scripted_demo.py",
+        "scripts/probe_and_baseline.py",
         "scripts/diagnose_training_nan.py",
         "scripts/collect_demos.py",
         "scripts/pretrain_bc.py",
@@ -126,6 +127,14 @@ def main() -> None:
                              "PROTEGIDO (entropia 0, crítico aquecido "
                              "com o ator congelado por 50 iterações).")
     parser.add_argument(
+        "--single-boot-spike", action="store_true",
+        help="Spike B5 (issue #14): probe e baseline num único boot "
+             "do Isaac Sim — um só comando roda "
+             "scripts/probe_and_baseline.py, que executa os dois "
+             "estágios no mesmo processo. Default desligado: o "
+             "kernel normal roda os estágios em processos separados, "
+             "como sempre.")
+    parser.add_argument(
         "--cinematic-video", action="store_true",
         help="Vídeo industrial fatia 1 (issue #9): SO o playback muda "
              "— viz newton_gl -> newton_rtx (path tracer OVRTX; extra "
@@ -146,6 +155,24 @@ def main() -> None:
              "versão ou falhar na sonda de import. Default: sem "
              "cache, o notebook é o de sempre.",
     )
+    parser.add_argument(
+        "--eval-only", action="store_true",
+        help="Modo eval-only (issue #11, B2): o notebook NÃO treina "
+             "— roda probe+baseline de sanidade e pula direto para "
+             "playback+benchmark multi-seed de um checkpoint já "
+             "treinado, empacotado como dataset Kaggle (montado em "
+             "/kaggle/input). Exige --eval-checkpoint explícito. "
+             "Use com um slug próprio (ex.: --kernel-slug "
+             "fanuc-eval-only). Default desligado.",
+    )
+    parser.add_argument(
+        "--eval-checkpoint", default=None,
+        help="Caminho do checkpoint RELATIVO a /kaggle/input, no "
+             "formato <dataset>/<arquivo>.pt (ex.: "
+             "fanuc-checkpoint-bc-v7/model_1499.pt). O primeiro "
+             "componente é o slug do dataset anexado ao kernel. "
+             "'latest' é proibido (lição da BC v6).",
+    )
     args = parser.parse_args()
     if args.isaac_cache_dataset and "/" not in args.isaac_cache_dataset:
         parser.error("--isaac-cache-dataset exige o slug completo "
@@ -155,6 +182,11 @@ def main() -> None:
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
     if args.bc_exp1 and not args.bc_warmstart:
         parser.error("--bc-exp1 exige --bc-warmstart")
+    if args.single_boot_spike and args.bc_warmstart:
+        # Spike isolado com portão próprio (issue #14): a cadeia BC
+        # tem protocolo dela e não entra no boot compartilhado.
+        parser.error("--single-boot-spike é um spike isolado da linha "
+                     "principal; não combina com --bc-warmstart")
     if args.bc_warmstart and args.train_num_envs == 64 \
             and args.train_max_iterations == 500:
         # Regressao da BC v6: sem as flags, o treino warm-start saiu
@@ -163,6 +195,28 @@ def main() -> None:
         parser.error("--bc-warmstart exige a escala explicita do "
                      "protocolo: --train-num-envs 256 "
                      "--train-max-iterations 1500")
+    if args.eval_only and not args.eval_checkpoint:
+        parser.error("--eval-only exige --eval-checkpoint explicito "
+                     "(<dataset>/<arquivo>.pt relativo a /kaggle/input)")
+    if args.eval_checkpoint and not args.eval_only:
+        parser.error("--eval-checkpoint so faz sentido com --eval-only")
+    if args.eval_only and args.bc_warmstart:
+        parser.error("--eval-only é incompatível com --bc-warmstart: "
+                     "no modo eval nada treina")
+    if args.eval_checkpoint:
+        parts = Path(args.eval_checkpoint).parts
+        if args.eval_checkpoint.startswith("/") or len(parts) < 2:
+            parser.error("--eval-checkpoint deve ser relativo a "
+                         "/kaggle/input, no formato "
+                         "<dataset>/<arquivo>.pt")
+        if parts[-1] == "latest" or "latest" in parts:
+            # Lição da BC v6: 'latest' matou o playback depois do
+            # treino completo — checkpoint é sempre explícito.
+            parser.error("--eval-checkpoint proíbe 'latest': informe o "
+                         "arquivo exato do checkpoint")
+        if not args.eval_checkpoint.endswith(".pt"):
+            parser.error("--eval-checkpoint deve apontar o arquivo "
+                         ".pt do checkpoint RSL-RL")
     KAGGLE_DIR.mkdir(parents=True, exist_ok=True)
 
     notebook = {
@@ -571,6 +625,69 @@ def main() -> None:
         "nbformat": 4,
         "nbformat_minor": 5,
     }
+    # Spike B5 (issue #14), só com --single-boot-spike: probe e
+    # baseline deixam de ser dois comandos (dois boots do Isaac Sim)
+    # e viram UM comando — scripts/probe_and_baseline.py executa os
+    # dois estágios intactos no mesmo processo (runpy), com os
+    # mesmos parâmetros e artefatos dos boots separados. O trecho
+    # entre o início do comando do probe e o portão do baseline é
+    # substituído pelo bloco do spike, que preenche as chaves que o
+    # restante do kernel lê (ppo_nan_probe_exit derivado do relatório
+    # do spike, scripted_baseline do mesmo JSON de sempre) e mantém
+    # os dois portões: exit != 0 aborta, e o gate grasp/place do
+    # baseline segue valendo palavra por palavra. Esta troca roda
+    # ANTES da parametrização física/escala abaixo, para o par
+    # '--extra', 'ovphysx' do comando do spike ser removido no modo
+    # Newton como o de todos os outros comandos. Sem a flag, nada
+    # aqui roda e o notebook é byte a byte o de sempre.
+    if args.single_boot_spike:
+        copies_anchor = ("project_dir / 'scripts' / "
+                         "'diagnose_training_nan.py')\n")
+        copies_spike = (
+            "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/probe_and_baseline.py',\n"
+            "                 project_dir / 'scripts' / 'probe_and_baseline.py')\n"
+        )
+        spike_block = (
+            "    spike = run(['uv', 'run', '--extra', 'ovphysx', 'python',\n"
+            "                 str(project_dir / 'scripts' / 'probe_and_baseline.py'),\n"
+            "                 '--device', 'cuda:0',\n"
+            "                 '--probe-num-envs', '64', '--probe-steps', '24', '--probe-seed', '7',\n"
+            "                 '--baseline-seed', '23',\n"
+            "                 '--baseline-output', '/kaggle/working/isaaclab-baseline.json',\n"
+            "                 '--report', '/kaggle/working/probe-baseline-spike.json'],\n"
+            "                cwd=source_dir, env=baseline_env)\n"
+            "    runtime_report['single_boot_spike_exit'] = spike.returncode\n"
+            "    runtime_report['single_boot_spike_stdout'] = spike.stdout[-8000:]\n"
+            "    runtime_report['single_boot_spike_stderr'] = spike.stderr[-8000:]\n"
+            "    print(spike.stdout[-8000:])\n"
+            "    spike_report_file = Path('/kaggle/working/probe-baseline-spike.json')\n"
+            "    if spike_report_file.is_file():\n"
+            "        runtime_report['single_boot_spike'] = json.loads(spike_report_file.read_text())\n"
+            "    runtime_report['ppo_nan_probe_exit'] = (\n"
+            "        runtime_report.get('single_boot_spike') or {}).get('probe_exit_code')\n"
+            "    runtime_report['scripted_baseline_exit'] = spike.returncode\n"
+            "    baseline_metrics = Path('/kaggle/working/isaaclab-baseline.json')\n"
+            "    if baseline_metrics.is_file():\n"
+            "        runtime_report['scripted_baseline'] = json.loads(baseline_metrics.read_text())\n"
+            "    if spike.returncode != 0 or not baseline_metrics.is_file():\n"
+            "        save_report()\n"
+            "        raise RuntimeError('Single-boot spike (B5, issue #14) did not reproduce the separate-boot verdicts; see single_boot_spike in the report. stdout:\\n' + spike.stdout[-12000:] + '\\nstderr:\\n' + spike.stderr[-8000:])\n"
+            "    baseline_result = runtime_report['scripted_baseline']\n"
+            "    if not baseline_result.get('success') or not baseline_result.get('scripted_grasp_sensor_passed'):\n"
+            "        save_report()\n"
+            "        raise RuntimeError('Isaac Lab physical baseline failed grasp/place acceptance; PPO training is gated until it passes: ' + str(baseline_result))\n"
+        )
+        gate_tail = ("PPO training is gated until it passes: ' + str(baseline_result))\n")
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if "nan_probe = run([" not in source:
+                continue
+            source = source.replace(copies_anchor,
+                                    copies_anchor + copies_spike, 1)
+            start = source.index("    nan_probe = run([")
+            end = source.index(gate_tail, start) + len(gate_tail)
+            source = source[:start] + spike_block + source[end:]
+            cell["source"] = source.splitlines(keepends=True)
     # Parametrização do experimento (v68 / spike Newton): as células
     # nascem com os defaults históricos (ovphysx, 64 envs, 500 it) e
     # os tokens são trocados aqui, num lugar só — com os defaults, a
@@ -728,6 +845,51 @@ def main() -> None:
                     "'--checkpoint', 'latest',",
                     "'--checkpoint', str(checkpoints[-1]),")
             cell["source"] = source.splitlines(keepends=True)
+    # Modo eval-only (issue #11, B2), só com --eval-only: na célula
+    # principal, o bloco de treino (comando + portões + glob de
+    # checkpoints) é substituído pela resolução do checkpoint
+    # EXPLÍCITO do dataset anexado, e playback/benchmark passam a
+    # apontar para ele — nada de '--checkpoint latest' (lição da
+    # BC v6) nem de glob por mtime. Probe de NaN e baseline
+    # scriptado (sanidade) ficam intactos ANTES deste ponto; treino,
+    # coleta BC e pré-treino não existem neste modo. As âncoras não
+    # dependem de extras/física (o passe de parametrização roda
+    # antes e pode ter removido '--extra', 'ovphysx'). Sem a flag,
+    # nada aqui roda e o notebook é o de sempre.
+    if args.eval_only:
+        eval_block = (
+            "    # Eval-only (issue #11, B2): sem treino — o checkpoint\n"
+            "    # vem EXPLICITO do dataset Kaggle anexado (montado em\n"
+            "    # /kaggle/input); o caminho é o da flag --eval-checkpoint\n"
+            "    # do builder, nunca 'latest' nem glob por mtime.\n"
+            "    runtime_report['eval_only'] = True\n"
+            f"    _eval_ckpt_path = Path('/kaggle/input') / {args.eval_checkpoint!r}\n"
+            "    if not _eval_ckpt_path.is_file():\n"
+            "        save_report()\n"
+            "        raise RuntimeError('Eval-only: checkpoint explicito nao encontrado no dataset anexado: ' + str(_eval_ckpt_path))\n"
+            "    eval_checkpoint = str(_eval_ckpt_path)\n"
+            "    runtime_report['eval_checkpoint'] = eval_checkpoint\n"
+            "    runtime_report['eval_checkpoint_bytes'] = _eval_ckpt_path.stat().st_size\n"
+            "    runtime_report['ppo_training_exit'] = None\n"
+            "    runtime_report['ppo_training_skip'] = 'eval-only (issue #11): playback+benchmark direto do checkpoint do dataset, sem retreino.'\n"
+        )
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if "training = run(" not in source:
+                continue
+            start = source.index("    training = run(")
+            end_marker = ("raise RuntimeError('PPO exited without "
+                          "producing an RSL-RL checkpoint.')\n")
+            end = source.index(end_marker) + len(end_marker)
+            source = source[:start] + eval_block + source[end:]
+            n_latest = source.count("'--checkpoint', 'latest',")
+            if n_latest != 2:
+                raise AssertionError(
+                    "eval-only esperava 2 usos de '--checkpoint latest' "
+                    f"(playback+benchmark), achou {n_latest}")
+            source = source.replace("'--checkpoint', 'latest',",
+                                    "'--checkpoint', eval_checkpoint,")
+            cell["source"] = source.splitlines(keepends=True)
     # Vídeo industrial fatia 1 (issue #9), só com --cinematic-video:
     # mexe EXCLUSIVAMENTE no comando de playback da célula principal —
     # viz newton_rtx + extra ovrtx + env FANUC_CELL_CINEMATIC=1 para o
@@ -863,11 +1025,21 @@ def main() -> None:
         "machine_shape": args.accelerator,
         "enable_internet": True,
     }
+    dataset_sources = []
     if args.isaac_cache_dataset:
         # O Kaggle monta o dataset em /kaggle/input/<dataset> e o
         # script de push já traduz dataset_sources ->
         # datasetDataSources no corpo do POST /kernels/push.
-        metadata["dataset_sources"] = [args.isaac_cache_dataset]
+        dataset_sources.append(args.isaac_cache_dataset)
+    if args.eval_only:
+        # O dataset do checkpoint entra como fonte do kernel; o push
+        # (scripts/kaggle_push_kernel.py) repassa dataset_sources
+        # para datasetDataSources da API. O dono é reescrito no push
+        # quando --usuario é passado, como já acontece com o id.
+        dataset_sources.append(
+            f"{args.kaggle_user}/{Path(args.eval_checkpoint).parts[0]}")
+    if dataset_sources:
+        metadata["dataset_sources"] = dataset_sources
     (KAGGLE_DIR / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     print(notebook_path)
 
