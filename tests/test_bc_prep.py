@@ -213,3 +213,20 @@ def test_builder_bc_v7_guards_scale_and_explicit_checkpoint() -> None:
     assert "'--checkpoint', str(checkpoints[-1])," in builder
     train_bc = (ROOT / "scripts/train_ppo_bc.py").read_text()
     assert 'Path("bc-warmstart.json").write_text(' in train_bc
+
+
+def test_builder_exp1_wiring() -> None:
+    # Experimento 1 (issue #8): flag --bc-exp1 exige --bc-warmstart,
+    # copia o avaliador do ator puro, roda o Estágio A (seeds 2000+)
+    # e liga o Estágio B protegido no comando de treino.
+    builder = (ROOT / "scripts/build_kaggle_notebook.py").read_text()
+    assert '"--bc-exp1", action="store_true"' in builder
+    assert '"--bc-exp1 exige --bc-warmstart"' in builder
+    assert '"scripts/eval_bc_actor.py"' in builder
+    assert "eval_bc_actor.py')," in builder
+    assert "'--seed', '2000'," in builder
+    assert "'--protected', " in builder
+    assert "'--warmup-iters', '50'" in builder
+    eval_script = (ROOT / "scripts/eval_bc_actor.py").read_text()
+    assert "ActorMLP.load_npz" in eval_script
+    assert "default=2000" in eval_script  # fora das seeds das demos
