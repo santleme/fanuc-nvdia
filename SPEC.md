@@ -1121,6 +1121,26 @@ Fora deste protocolo (fatia 2, issue futura): correia/rolos
 animados sincronizados à peça, trajetória de câmera, patch PBR
 no USD do robô.
 
+### Cache da instalação do Isaac Lab (B4, issue #12 — lado do código, 27/10/2026)
+
+Desenho completo em `docs/isaac-cache.md`. Entregue no código:
+núcleo puro `fanuc_cell.isaac_cache` (manifesto formato 1 amarrado
+ao ref `v3.0.0`, descoberta do mount, plano de restauração como
+dados); builder principal com `--isaac-cache-dataset` opt-in
+(metadata ganha `dataset_sources`; a célula de instalação tenta
+restaurar + sonda `import isaaclab, torch` e cai no clone+sync
+original em qualquer falha, registrando `runtime_report['isaac_cache']`
+e `timings_seconds['isaac_setup']`); kernel construtor
+`fanuc-isaaclab-cache-builder` (`scripts/build_cache_notebook.py`:
+sync com `UV_LINK_MODE=copy`, extras `ovphysx/video/importers/ovrtx`
+aquecidos) + `scripts/prepare_isaac_cache.py` (snapshot no layout
+do dataset + `--verify` pelo mesmo portão do consumidor). Sem a
+flag, células e metadata gerados são idênticos aos de sempre — só
+o zip do bundle ganha os arquivos (inertes) do núcleo do cache. **Pendente de
+corrida** (aceitação da issue): rodar o construtor, criar o dataset
+`fanuc-isaaclab-cache` da saída dele e medir a primeira corrida
+completa restaurada contra a linha de base clone+sync.
+
 ### Protocolo do spike B5 — probe+baseline num boot único (issue #14, pré-registrado em 27/10/2026)
 
 Desenho: `scripts/probe_and_baseline.py` roda os dois estágios NO
