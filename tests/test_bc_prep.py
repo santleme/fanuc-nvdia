@@ -245,3 +245,4 @@ def test_train_ppo_bc_protected_mode() -> None:
     assert "p.requires_grad_(True)" in src
     assert "BC_PROTECTED_WARMUP_DONE" in src
     assert "total_iters - args.warmup_iters" in src
+    assert "runner.current_learning_iteration += 1" in src  # off-by-one do learn() em 2 chamadas

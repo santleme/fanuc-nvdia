@@ -914,3 +914,14 @@ decai (→ próximo passo: DAPG). **MATA** com leituras obrigatórias:
 grasp@iteração-0 alto que colapsa confirma esquecimento (→ DAPG);
 grasp do Estágio A < 0,05 condena o BC em si (→ estado
 ampliado/DAgger), não o PPO. Aguardando decisão do fundador.
+
+**Correção de implementação do Estágio B (27/10/2026)**: o
+mapeamento da fonte do rsl-rl-lib 5.5.1 achou um off-by-one no
+`learn()` em duas chamadas — `current_learning_iteration` guarda o
+índice da última iteração concluída, então sem ajuste a iteração 49
+(o fim do warmup) reexecutaria já descongelada e a corrida fecharia
+em model_1498. Correção: `current_learning_iteration += 1` entre as
+chamadas (50 congeladas exatas, 1500 updates, model_1499). A v8 do
+kernel chegou a ser lançada sem a correção e foi substituída pela
+v9 minutos depois, ainda no estágio de coleta — nenhum resultado da
+v8 é válido nem será lido como experimento.

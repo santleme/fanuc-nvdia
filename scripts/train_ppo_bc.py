@@ -174,6 +174,13 @@ def main() -> int:
                 finally:
                     for p in frozen:
                         p.requires_grad_(True)
+                # Off-by-one do rsl_rl 5.x (mapeado na fonte 5.5.1):
+                # current_learning_iteration guarda o ÍNDICE da última
+                # iteração concluída — sem o ajuste, a 2ª chamada a
+                # learn() reexecuta a última iteração do warmup já com
+                # o ator descongelado e a corrida termina um índice
+                # atrás (model_1498 em vez de model_1499).
+                runner.current_learning_iteration += 1
                 print("BC_PROTECTED_WARMUP_DONE",
                       {"warmup_iters": args.warmup_iters,
                        "frozen_params": len(frozen)}, flush=True)
