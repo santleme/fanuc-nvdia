@@ -1028,3 +1028,36 @@ cinematic × física `newton_mjwarp`). Este protocolo registra a
 Fora deste protocolo (fatia 2, issue futura): correia/rolos
 animados sincronizados à peça, trajetória de câmera, patch PBR
 no USD do robô.
+
+### Protocolo do spike B5 — probe+baseline num boot único (issue #14, pré-registrado em 27/10/2026)
+
+Desenho: `scripts/probe_and_baseline.py` roda os dois estágios NO
+MESMO processo via `runpy` — cada estágio executa o seu arquivo
+intacto, como `__main__`, com o próprio argv — ou seja, duas
+entradas sequenciais em `launch_simulation` sob um único boot do
+Isaac Sim. Os estágios separados não mudam em nada. O builder ganha
+a flag opt-in `--single-boot-spike`, que troca os dois comandos do
+kernel por um só e registra `single_boot_spike` no runtime-report
+(exit de cada estágio + veredito), mantendo derivadas as chaves
+atuais (`ppo_nan_probe_exit`, `scripted_baseline`) e os dois
+portões (exit != 0 aborta; gate grasp/place do baseline idêntico).
+A flag não combina com `--bc-warmstart` (spike isolado, protocolo
+próprio).
+
+Protocolo: kernel da linha principal construído com
+`--single-boot-spike` (mesma física e parâmetros dos boots
+separados: probe 64 envs/24 steps/seed 7, baseline seed 23) e
+comparação direta com a corrida de boots separados da mesma versão
+de código. **ADOTA** se, dentro do mesmo processo, o probe sair 0
+(finite) e o baseline produzir o mesmo veredito (success +
+scripted_grasp_sensor_passed). **MATA** se o segundo
+`launch_simulation` falhar, travar ou divergir — o spike encerra
+sem custo e os boots separados ficam. A economia esperada é
+<1 min/corrida: o que está em julgamento é a reentrada, não o tempo.
+
+Status: implementação e testes estruturais prontos em 27/10/2026
+(suíte verde: 69/69 na base da branch e 71/71 após o merge da
+main, incluindo o núcleo de orquestração exercitado com
+estágios falsos — SystemExit, exceção e argv conferidos). O
+veredito aguarda a corrida do spike no Kaggle: nenhuma simulação
+roda na VM, e a reentrada só se prova com o Isaac de verdade.

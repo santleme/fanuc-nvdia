@@ -33,6 +33,7 @@ def bundled_project() -> str:
         "src/fanuc_cell/rerun_log.py",
         "scripts/render_demo.py",
         "scripts/run_scripted_demo.py",
+        "scripts/probe_and_baseline.py",
         "scripts/diagnose_training_nan.py",
         "scripts/collect_demos.py",
         "scripts/pretrain_bc.py",
@@ -124,6 +125,14 @@ def main() -> None:
                              "PROTEGIDO (entropia 0, crítico aquecido "
                              "com o ator congelado por 50 iterações).")
     parser.add_argument(
+        "--single-boot-spike", action="store_true",
+        help="Spike B5 (issue #14): probe e baseline num único boot "
+             "do Isaac Sim — um só comando roda "
+             "scripts/probe_and_baseline.py, que executa os dois "
+             "estágios no mesmo processo. Default desligado: o "
+             "kernel normal roda os estágios em processos separados, "
+             "como sempre.")
+    parser.add_argument(
         "--cinematic-video", action="store_true",
         help="Vídeo industrial fatia 1 (issue #9): SO o playback muda "
              "— viz newton_gl -> newton_rtx (path tracer OVRTX; extra "
@@ -137,6 +146,11 @@ def main() -> None:
         parser.error("--bc-warmstart v1 é só na linha principal (ovphysx)")
     if args.bc_exp1 and not args.bc_warmstart:
         parser.error("--bc-exp1 exige --bc-warmstart")
+    if args.single_boot_spike and args.bc_warmstart:
+        # Spike isolado com portão próprio (issue #14): a cadeia BC
+        # tem protocolo dela e não entra no boot compartilhado.
+        parser.error("--single-boot-spike é um spike isolado da linha "
+                     "principal; não combina com --bc-warmstart")
     if args.bc_warmstart and args.train_num_envs == 64 \
             and args.train_max_iterations == 500:
         # Regressao da BC v6: sem as flags, o treino warm-start saiu
@@ -553,6 +567,69 @@ def main() -> None:
         "nbformat": 4,
         "nbformat_minor": 5,
     }
+    # Spike B5 (issue #14), só com --single-boot-spike: probe e
+    # baseline deixam de ser dois comandos (dois boots do Isaac Sim)
+    # e viram UM comando — scripts/probe_and_baseline.py executa os
+    # dois estágios intactos no mesmo processo (runpy), com os
+    # mesmos parâmetros e artefatos dos boots separados. O trecho
+    # entre o início do comando do probe e o portão do baseline é
+    # substituído pelo bloco do spike, que preenche as chaves que o
+    # restante do kernel lê (ppo_nan_probe_exit derivado do relatório
+    # do spike, scripted_baseline do mesmo JSON de sempre) e mantém
+    # os dois portões: exit != 0 aborta, e o gate grasp/place do
+    # baseline segue valendo palavra por palavra. Esta troca roda
+    # ANTES da parametrização física/escala abaixo, para o par
+    # '--extra', 'ovphysx' do comando do spike ser removido no modo
+    # Newton como o de todos os outros comandos. Sem a flag, nada
+    # aqui roda e o notebook é byte a byte o de sempre.
+    if args.single_boot_spike:
+        copies_anchor = ("project_dir / 'scripts' / "
+                         "'diagnose_training_nan.py')\n")
+        copies_spike = (
+            "    shutil.copy2('/kaggle/working/fanuc-cell/scripts/probe_and_baseline.py',\n"
+            "                 project_dir / 'scripts' / 'probe_and_baseline.py')\n"
+        )
+        spike_block = (
+            "    spike = run(['uv', 'run', '--extra', 'ovphysx', 'python',\n"
+            "                 str(project_dir / 'scripts' / 'probe_and_baseline.py'),\n"
+            "                 '--device', 'cuda:0',\n"
+            "                 '--probe-num-envs', '64', '--probe-steps', '24', '--probe-seed', '7',\n"
+            "                 '--baseline-seed', '23',\n"
+            "                 '--baseline-output', '/kaggle/working/isaaclab-baseline.json',\n"
+            "                 '--report', '/kaggle/working/probe-baseline-spike.json'],\n"
+            "                cwd=source_dir, env=baseline_env)\n"
+            "    runtime_report['single_boot_spike_exit'] = spike.returncode\n"
+            "    runtime_report['single_boot_spike_stdout'] = spike.stdout[-8000:]\n"
+            "    runtime_report['single_boot_spike_stderr'] = spike.stderr[-8000:]\n"
+            "    print(spike.stdout[-8000:])\n"
+            "    spike_report_file = Path('/kaggle/working/probe-baseline-spike.json')\n"
+            "    if spike_report_file.is_file():\n"
+            "        runtime_report['single_boot_spike'] = json.loads(spike_report_file.read_text())\n"
+            "    runtime_report['ppo_nan_probe_exit'] = (\n"
+            "        runtime_report.get('single_boot_spike') or {}).get('probe_exit_code')\n"
+            "    runtime_report['scripted_baseline_exit'] = spike.returncode\n"
+            "    baseline_metrics = Path('/kaggle/working/isaaclab-baseline.json')\n"
+            "    if baseline_metrics.is_file():\n"
+            "        runtime_report['scripted_baseline'] = json.loads(baseline_metrics.read_text())\n"
+            "    if spike.returncode != 0 or not baseline_metrics.is_file():\n"
+            "        save_report()\n"
+            "        raise RuntimeError('Single-boot spike (B5, issue #14) did not reproduce the separate-boot verdicts; see single_boot_spike in the report. stdout:\\n' + spike.stdout[-12000:] + '\\nstderr:\\n' + spike.stderr[-8000:])\n"
+            "    baseline_result = runtime_report['scripted_baseline']\n"
+            "    if not baseline_result.get('success') or not baseline_result.get('scripted_grasp_sensor_passed'):\n"
+            "        save_report()\n"
+            "        raise RuntimeError('Isaac Lab physical baseline failed grasp/place acceptance; PPO training is gated until it passes: ' + str(baseline_result))\n"
+        )
+        gate_tail = ("PPO training is gated until it passes: ' + str(baseline_result))\n")
+        for cell in notebook["cells"]:
+            source = "".join(cell["source"])
+            if "nan_probe = run([" not in source:
+                continue
+            source = source.replace(copies_anchor,
+                                    copies_anchor + copies_spike, 1)
+            start = source.index("    nan_probe = run([")
+            end = source.index(gate_tail, start) + len(gate_tail)
+            source = source[:start] + spike_block + source[end:]
+            cell["source"] = source.splitlines(keepends=True)
     # Parametrização do experimento (v68 / spike Newton): as células
     # nascem com os defaults históricos (ovphysx, 64 envs, 500 it) e
     # os tokens são trocados aqui, num lugar só — com os defaults, a
