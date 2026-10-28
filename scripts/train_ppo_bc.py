@@ -32,6 +32,12 @@ parser.add_argument("--seed", type=int, default=7)
 parser.add_argument("--bc-weights", type=Path, required=True,
                     help=".npz do ator treinado por BC (pretrain_bc.py).")
 parser.add_argument("--physics", default="ovphysx")
+parser.add_argument("--protected", action="store_true",
+                    help="Estágio B do Experimento 1 (issue #8): higiene "
+                         "de fine-tuning — entropia 0 e crítico aquecido "
+                         "com o ator congelado por --warmup-iters "
+                         "iterações antes do treino conjunto.")
+parser.add_argument("--warmup-iters", type=int, default=50)
 add_launcher_args(parser)
 args = parser.parse_args()
 args.visualizer = "none"
@@ -117,6 +123,11 @@ def main() -> int:
             # rsl-rl >= 4 morre com KeyError 'class_name' em
             # resolve_class(cfg["actor"]) — foi o que matou a BC v4
             # depois do portao das demos aprovado.
+            if args.protected:
+                # Higiene de fine-tuning (issue #8): o bônus de
+                # entropia empurra o ator para longe da imitação nos
+                # primeiros passos — no modo protegido ele é zero.
+                agent_cfg.algorithm.entropy_coef = 0.0
             import importlib.metadata as metadata
             from isaaclab_rl.rsl_rl.utils import \
                 handle_deprecated_rsl_rl_cfg
@@ -130,14 +141,48 @@ def main() -> int:
                 env, agent_cfg.to_dict(), log_dir=str(log_dir),
                 device=agent_cfg.device)
             warmstart_info = inject_bc_weights(runner, args.bc_weights)
+            if args.protected:
+                warmstart_info["protected"] = {
+                    "entropy_coef": 0.0,
+                    "warmup_iters": args.warmup_iters,
+                    "obs_normalization": bool(
+                        agent_cfg.to_dict().get("actor", {})
+                        .get("obs_normalization", False)),
+                }
             # Registro duravel do warm-start: o runtime-report do
             # notebook guarda so a cauda do stdout e o marcador
             # impresso na injecao ficou fora dela na BC v6.
             Path("bc-warmstart.json").write_text(
                 json.dumps(warmstart_info, indent=1))
-            runner.learn(
-                num_learning_iterations=agent_cfg.max_iterations,
-                init_at_random_ep_len=True)
+            total_iters = agent_cfg.max_iterations
+            if args.protected and args.warmup_iters > 0:
+                # Estágio B (issue #8): aquece o crítico com o ator
+                # CONGELADO. O otimizador do rsl_rl 5.x é único para
+                # ator+crítico (chain dos parâmetros), então o freeze
+                # é por requires_grad nos parâmetros do ator — o que
+                # inclui o std da distribuição. learn() continua a
+                # contagem de iterações entre chamadas (fonte 5.5.1:
+                # start_it = current_learning_iteration).
+                frozen = [p for p in runner.alg.actor.parameters()
+                          if p.requires_grad]
+                for p in frozen:
+                    p.requires_grad_(False)
+                try:
+                    runner.learn(
+                        num_learning_iterations=args.warmup_iters,
+                        init_at_random_ep_len=True)
+                finally:
+                    for p in frozen:
+                        p.requires_grad_(True)
+                print("BC_PROTECTED_WARMUP_DONE",
+                      {"warmup_iters": args.warmup_iters,
+                       "frozen_params": len(frozen)}, flush=True)
+                runner.learn(
+                    num_learning_iterations=total_iters - args.warmup_iters)
+            else:
+                runner.learn(
+                    num_learning_iterations=total_iters,
+                    init_at_random_ep_len=True)
             print("BC_WARMSTART_APPLIED", warmstart_info, flush=True)
         finally:
             env.close()

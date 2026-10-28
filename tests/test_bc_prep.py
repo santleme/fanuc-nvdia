@@ -230,3 +230,18 @@ def test_builder_exp1_wiring() -> None:
     eval_script = (ROOT / "scripts/eval_bc_actor.py").read_text()
     assert "ActorMLP.load_npz" in eval_script
     assert "default=2000" in eval_script  # fora das seeds das demos
+
+
+def test_train_ppo_bc_protected_mode() -> None:
+    # Estágio B (issue #8): entropia zerada na cfg e warmup do crítico
+    # com o ator congelado via requires_grad (o otimizador do rsl_rl
+    # 5.x é único p/ ator+crítico), com learn() em duas chamadas que
+    # somam o budget total.
+    src = (ROOT / "scripts/train_ppo_bc.py").read_text()
+    assert '"--protected", action="store_true"' in src
+    assert '"--warmup-iters", type=int, default=50' in src
+    assert "agent_cfg.algorithm.entropy_coef = 0.0" in src
+    assert "p.requires_grad_(False)" in src
+    assert "p.requires_grad_(True)" in src
+    assert "BC_PROTECTED_WARMUP_DONE" in src
+    assert "total_iters - args.warmup_iters" in src
