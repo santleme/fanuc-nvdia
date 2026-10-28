@@ -59,6 +59,14 @@ def load_inputs(usuario: str | None) -> tuple[dict, str]:
     if usuario:
         slug = str(meta["id"]).split("/", 1)[-1]
         meta["id"] = f"{usuario}/{slug}"
+        # Fontes de dataset (modo eval-only, issue #11) seguem a mesma
+        # regra do id: o dono é o usuário do push, não quem montou o
+        # notebook — sem isso, dataset_sources montado com o usuário
+        # placeholder quebraria o kernel no Kaggle.
+        meta["dataset_sources"] = [
+            f"{usuario}/{str(src).split('/', 1)[-1]}"
+            for src in meta.get("dataset_sources", [])
+        ]
     if PLACEHOLDER in str(meta["id"]):
         raise SystemExit(
             f"ERRO: o id do kernel ainda tem o placeholder {PLACEHOLDER!r}: {meta['id']}\n"

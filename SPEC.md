@@ -1024,6 +1024,97 @@ com história). **MATA** = sucesso 0, grasp final ≤ 0,02 e
 primária; volta à decisão do fundador entre features/crítico
 assimétrico/recorrência). Demos e checkpoints não são
 intercambiáveis entre valores de H.
+### Protocolo do probe do limiar da garra (B6, issue #13 — pré-registrado em 27/10/2026)
+
+> Protocolo `fanuc-gripper-threshold-b6`.
+
+A ambiguidade, medida no código: `object_held` e `object_grasped`
+declaram a garra **fechada** com as duas juntas `>=
+closed_joint_position` (default **0,004 m**, parâmetro) e o baseline
+scriptado usa o mesmo literal; `object_at_goal` declara a garra
+**aberta** com as duas juntas `< 0,005 m` — literal solto, sem
+parâmetro. Na banda [0,004; 0,005) a mesma pose é fechada para o
+grasp e aberta para o sucesso, simultaneamente. Nenhum dos dois
+valores foi medido: um veio do código, outro dos testes antigos.
+Este protocolo mede onde a física põe o pinch e fixa UM valor.
+
+**Medição** (kernel `pascalcoimbra/fanuc-probe-gripper-threshold`,
+builder `scripts/build_probe_notebook.py`, probe
+`scripts/probe_gripper_threshold.py`; nada roda na VM): cenário
+`pinch` = episódio do professor com a construção do baseline, seeds
+**23, 24, 25**; cenário `empty` = braço em home, fechamento até o
+platô (3 s) e abertura (2 s). Cada passo grava junta esquerda/direita
+da garra, força normal dos dois dedos, fase e distância peça–TCP. As
+amostras cruas são salvas (`gripper-threshold-samples.json`) — a
+análise (`fanuc_cell.gripper_threshold`, pura) pode ser refeita sem
+nova simulação.
+
+**Quantidades medidas.** Verdade física do pinch = contato bilateral
+(forças > 0,01 N, o limiar do próprio MDP). (i) `pinch_p05`:
+percentil 5 da junta MÍNIMA nos passos de contato bilateral
+sustentado (>= 5 passos consecutivos) das fases grasp/hold/lift/
+transfer/place — teto do limiar de fechamento. (ii)
+`contact_loss_p05`: percentil 5 da junta MÁXIMA no passo de perda de
+contato na abertura (último passo com contato seguido de >= 10 sem
+contato) — teto do limiar de abertura. (iii) platô do fechamento
+vazio (mediana da junta mínima nos 20% finais do `empty_close`).
+(iv) varredura FP/FN de cada candidato da grade 0,0020–0,0080 m
+(passo 0,00025) contra o contato medido. (v) ocupação da banda
+atual: fração de passos com min >= 0,004 e max < 0,005, no total,
+com contato e sem contato.
+
+**Regra de leitura (fixada antes da corrida).** Teto admissível =
+min(`pinch_p05`, `contact_loss_p05`); **T\*** = maior ponto da grade
+sob o teto. **PROVA**: T* >= 0,0045 — adotar T* como valor único
+(fechada := min >= T*; aberta := max < T*, o MESMO T* nos dois
+predicados; a banda some por construção). **PARCIAL**: 0,004 <= T* <
+0,0045 — manter 0,004 como valor único e alinhar só o literal de
+abertura a ele. **MATA**: T* < 0,004 ou grade vazia — nem o valor do
+código se sustenta: pinches reais vivem abaixo dele ou o contato
+persiste abaixo dele na abertura; escalar a revisão do desenho da
+detecção de grasp (a junta sozinha não separa os estados).
+**SEM_SINAL**: sem pinch sustentado ou sem perda de contato medida
+— a medição não aconteceu; relançar o probe, nada se decide.
+
+**Alinhamento (commit seguinte ao veredito, PR próprio):** aplicar
+o valor decidido em `object_held`/`object_grasped`
+(`closed_joint_position`), no literal de abertura de
+`object_at_goal` (que passa a usar o mesmo valor), no literal do
+baseline (`run_scripted_demo.py`) e na asserção do teste de scaffold
+— código e testes alinhados ao valor medido, como pede a aceitação
+da issue #13. Até lá, código e testes seguem como estão: este PR
+entrega o instrumento e a regra, não o valor.
+## Modo eval-only (issue #11, B2) — implementado em 27/10/2026
+
+Avaliar checkpoint existente sem repetir treino: o checkpoint é
+empacotado como dataset Kaggle (`scripts/package_checkpoint_dataset.py`
+gera a pasta com o .pt de nome preservado, `dataset-metadata.json` e
+`checkpoint-manifest.json` com sha256/bytes/origem; upload pelo
+`create-dataset` do conector custom.kaggle) e o builder ganha o modo
+`--eval-only --eval-checkpoint <dataset>/<arquivo>.pt`:
+
+- O builder anexa o dataset ao kernel (`dataset_sources` no metadata;
+  o push reescreve o dono com `--usuario`, como já faz com o id).
+- Na célula principal, o bloco de treino é substituído pela resolução
+  do checkpoint em `/kaggle/input/<dataset>/<arquivo>.pt`, com portão
+  de existência; playback e benchmark multi-seed (B3) usam
+  `--checkpoint eval_checkpoint` — **nada de `latest`** (lição da
+  BC v6) nem de glob por mtime. Probe de NaN e baseline scriptado
+  (sanidade) são mantidos; o runtime-report registra `eval_only`,
+  o caminho e os bytes do checkpoint.
+- Validações do builder: `--eval-only` exige checkpoint explícito
+  relativo a /kaggle/input, terminando em `.pt`, sem componente
+  `latest`; incompatível com `--bc-warmstart`. Compõe com
+  `--cinematic-video` (o caso da issue #9: vídeo de checkpoint já
+  treinado) e com o passe de física. Sem as flags, o notebook gerado
+  é idêntico ao de sempre (células e conteúdo do zip conferidos
+  contra a main).
+- Protocolo da 1ª corrida: montar com slug próprio (ex.:
+  `fanuc-eval-only`), avaliar o checkpoint final da corrida BC
+  vigente e conferir (a) tempo total de kernel < 8 min até o fim do
+  benchmark e (b) `policy_success_rates` por seed idênticos aos da
+  corrida original. Até essa corrida, a aceitação está implementada
+  mas não verificada em voo.
 
 ### Protocolo do vídeo industrial — newton_rtx + cena cinematic (issue #9, pré-registrado em 27/10/2026)
 
@@ -1064,3 +1155,56 @@ cinematic × física `newton_mjwarp`). Este protocolo registra a
 Fora deste protocolo (fatia 2, issue futura): correia/rolos
 animados sincronizados à peça, trajetória de câmera, patch PBR
 no USD do robô.
+
+### Cache da instalação do Isaac Lab (B4, issue #12 — lado do código, 27/10/2026)
+
+Desenho completo em `docs/isaac-cache.md`. Entregue no código:
+núcleo puro `fanuc_cell.isaac_cache` (manifesto formato 1 amarrado
+ao ref `v3.0.0`, descoberta do mount, plano de restauração como
+dados); builder principal com `--isaac-cache-dataset` opt-in
+(metadata ganha `dataset_sources`; a célula de instalação tenta
+restaurar + sonda `import isaaclab, torch` e cai no clone+sync
+original em qualquer falha, registrando `runtime_report['isaac_cache']`
+e `timings_seconds['isaac_setup']`); kernel construtor
+`fanuc-isaaclab-cache-builder` (`scripts/build_cache_notebook.py`:
+sync com `UV_LINK_MODE=copy`, extras `ovphysx/video/importers/ovrtx`
+aquecidos) + `scripts/prepare_isaac_cache.py` (snapshot no layout
+do dataset + `--verify` pelo mesmo portão do consumidor). Sem a
+flag, células e metadata gerados são idênticos aos de sempre — só
+o zip do bundle ganha os arquivos (inertes) do núcleo do cache. **Pendente de
+corrida** (aceitação da issue): rodar o construtor, criar o dataset
+`fanuc-isaaclab-cache` da saída dele e medir a primeira corrida
+completa restaurada contra a linha de base clone+sync.
+
+### Protocolo do spike B5 — probe+baseline num boot único (issue #14, pré-registrado em 27/10/2026)
+
+Desenho: `scripts/probe_and_baseline.py` roda os dois estágios NO
+MESMO processo via `runpy` — cada estágio executa o seu arquivo
+intacto, como `__main__`, com o próprio argv — ou seja, duas
+entradas sequenciais em `launch_simulation` sob um único boot do
+Isaac Sim. Os estágios separados não mudam em nada. O builder ganha
+a flag opt-in `--single-boot-spike`, que troca os dois comandos do
+kernel por um só e registra `single_boot_spike` no runtime-report
+(exit de cada estágio + veredito), mantendo derivadas as chaves
+atuais (`ppo_nan_probe_exit`, `scripted_baseline`) e os dois
+portões (exit != 0 aborta; gate grasp/place do baseline idêntico).
+A flag não combina com `--bc-warmstart` (spike isolado, protocolo
+próprio).
+
+Protocolo: kernel da linha principal construído com
+`--single-boot-spike` (mesma física e parâmetros dos boots
+separados: probe 64 envs/24 steps/seed 7, baseline seed 23) e
+comparação direta com a corrida de boots separados da mesma versão
+de código. **ADOTA** se, dentro do mesmo processo, o probe sair 0
+(finite) e o baseline produzir o mesmo veredito (success +
+scripted_grasp_sensor_passed). **MATA** se o segundo
+`launch_simulation` falhar, travar ou divergir — o spike encerra
+sem custo e os boots separados ficam. A economia esperada é
+<1 min/corrida: o que está em julgamento é a reentrada, não o tempo.
+
+Status: implementação e testes estruturais prontos em 27/10/2026
+(suíte verde: 69/69 na base da branch e 71/71 após o merge da
+main, incluindo o núcleo de orquestração exercitado com
+estágios falsos — SystemExit, exceção e argv conferidos). O
+veredito aguarda a corrida do spike no Kaggle: nenhuma simulação
+roda na VM, e a reentrada só se prova com o Isaac de verdade.

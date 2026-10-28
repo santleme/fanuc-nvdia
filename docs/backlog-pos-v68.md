@@ -15,7 +15,7 @@ após grasp × timeout. Sem esse mapa, redesign de reward é chute.
 Aceitação: relatório com a distribuição dos modos em ≥64 episódios e
 recomendação de qual termo/currículo atacar.
 
-## B2 — Modo eval-only no notebook (sem retreino)
+## B2 — Modo eval-only no notebook (sem retreino) — IMPLEMENTADA em 27/10/2026 (issue #11; builder --eval-only/--eval-checkpoint + scripts/package_checkpoint_dataset.py, SPEC atualizada; aceitação de tempo/veredito depende da 1ª corrida eval no Kaggle)
 Hoje toda avaliação repete install+treino (~15 min). Empacotar o
 checkpoint como dataset Kaggle e adicionar modo que pula direto para
 playback+benchmark a partir dele. Aceitação: avaliar um checkpoint
@@ -40,6 +40,11 @@ launch_simulation não provada). Spike isolado com portão próprio:
 se os dois estágios rodarem no mesmo processo com os mesmos
 vereditos, adota; se não, encerra sem custo. Aceitação: veredito do
 spike registrado na SPEC.
+
+Implementação pronta (issue #14, 27/10/2026): entrypoint
+`scripts/probe_and_baseline.py` + flag `--single-boot-spike` no
+builder; protocolo pré-registrado na SPEC. Veredito aguarda a
+corrida do spike no Kaggle.
 
 ## B6 — Banda ambígua do limiar da garra (0,004–0,005 m)
 Achado da auditoria de 26/10: o limiar de fechamento tem uma banda sem
